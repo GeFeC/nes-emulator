@@ -2,8 +2,20 @@
 
 #include "aliases.hpp"
 #include <utility>
+#include <string>
+#include <fstream>
 
 namespace nes{
+
+inline auto file_open_for_reading(const std::string& filepath, std::ios::openmode openmode = std::ios::in){
+  auto file = std::ifstream(filepath, openmode); 
+
+  if (!file){
+    throw std::runtime_error("Unable to open file: " + filepath);
+  }
+
+  return std::move(file);
+}
 
 template<typename T>
 using range_type = std::pair<T, T>;

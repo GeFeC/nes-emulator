@@ -49,6 +49,13 @@ struct Cpu{
     None
   };
 
+  struct AddressingData{
+    u16 new_absolute_address;
+    u16 new_relative_address = 0;
+    u16 instruction_size = 0;
+    bool may_req_additional_clock = false;
+  };
+
   u16 absolute_address = 0;
   u8 relative_address = 0;
 
@@ -438,89 +445,88 @@ struct Cpu{
   }
 };
 
-inline auto cpu_set_address_mode(Cpu* cpu, const Bus& bus, Cpu::AddressMode mode){
+
+inline auto cpu_get_addressing_data(const Cpu& cpu, const Bus& bus, Cpu::AddressMode mode){
+  auto data = Cpu::AddressingData{};
+  data.new_absolute_address = cpu.absolute_address;
+
   using Mode = Cpu::AddressMode;
   switch(mode){
     case Mode::None:
-      return 0;
+      return data;
 
     case Mode::Accumulator:
-      return 0;
+      return data;
 
     case Mode::Immediate:
-      cpu->absolute_address = cpu->pc;
-      cpu->pc++;
-      return 0;
+      data.new_absolute_address = cpu.pc;
+      data.instruction_size = 1;
+      return data;
 
     case Mode::ZeroPage:
-      cpu->absolute_address = bus_read(bus, cpu->pc) & 0x00FF;
-      cpu->pc++;
-      return 0;
+      data.new_absolute_address = bus_read(bus, cpu.pc) & 0x00FF;
+      data.instruction_size = 1;
+      return data;
 
     case Mode::ZeroPageX:
-      cpu->absolute_address = bus_read(bus, cpu->pc) + cpu->x;
-      cpu->absolute_address &= 0x00FF;
-      cpu->pc++;
-      return 0;
+      data.new_absolute_address = bus_read(bus, cpu.pc) + cpu.x;
+      data.new_absolute_address &= 0x00FF;
+      data.instruction_size = 1;
+      return data;
 
     case Mode::ZeroPageY:
-      cpu->absolute_address = bus_read(bus, cpu->pc) + cpu->y;
-      cpu->absolute_address &= 0x00FF;
-      cpu->pc++;
-      return 0;
+      data.new_absolute_address = bus_read(bus, cpu.pc) + cpu.y;
+      data.new_absolute_address &= 0x00FF;
+      data.instruction_size = 1;
+      return data;
 
     case Mode::Relative:
-      cpu->relative_address = bus_read(bus, cpu->pc);
-      cpu->pc++;
-      return 0;
+      data.new_relative_address = bus_read(bus, cpu.pc);
+      data.instruction_size = 1;
+      return data;
 
     case Mode::Absolute: {
-      const auto low = bus_read(bus, cpu->pc);
-      cpu->pc++;
-      const auto high = bus_read(bus, cpu->pc);
-      cpu->pc++;
+      const auto low = bus_read(bus, cpu.pc);
+      const auto high = bus_read(bus, cpu.pc + 1);
 
-      cpu->absolute_address = (high << 8) | low;
+      data.new_absolute_address = (high << 8) | low;
+      data.instruction_size = 2;
 
-      return 0;
+      return data;
     }
 
     case Mode::AbsoluteX:{
-      const auto low = bus_read(bus, cpu->pc);
-      cpu->pc++;
-      const auto high = bus_read(bus, cpu->pc);
-      cpu->pc++;
+      const auto low = bus_read(bus, cpu.pc);
+      const auto high = bus_read(bus, cpu.pc + 1);
 
-      cpu->absolute_address = (high << 8) | low;
-      cpu->absolute_address += cpu->x;
+      data.new_absolute_address = (high << 8) | low;
+      data.new_absolute_address += cpu.x;
+      data.instruction_size = 2;
 
       //Check if page changed:
-      if ((cpu->absolute_address & 0xFF00) != (high << 8)) return 1;
+      if ((data.new_absolute_address & 0xFF00) != (high << 8)) data.may_req_additional_clock = true;
 
-      return 0;
+      return data;
     }
 
     case Mode::AbsoluteY:{
-      const auto low = bus_read(bus, cpu->pc);
-      cpu->pc++;
-      const auto high = bus_read(bus, cpu->pc);
-      cpu->pc++;
+      const auto low = bus_read(bus, cpu.pc);
+      const auto high = bus_read(bus, cpu.pc + 1);
 
-      cpu->absolute_address = (high << 8) | low;
-      cpu->absolute_address += cpu->y;
+      data.new_absolute_address = (high << 8) | low;
+      data.new_absolute_address += cpu.y;
+      data.instruction_size = 2;
 
       //Check if page changed:
-      if ((cpu->absolute_address & 0xFF00) != (high << 8)) return 1;
+      if ((data.new_absolute_address & 0xFF00) != (high << 8)) data.may_req_additional_clock = true;
 
-      return 0;
+      return data;
+
     }
 
     case Mode::Indirect:{
-      const auto ptr_low = bus_read(bus, cpu->pc);
-      cpu->pc++;
-
-      const auto ptr_high = bus_read(bus, cpu->pc);
-      cpu->pc++;
+      const auto ptr_low = bus_read(bus, cpu.pc);
+      const auto ptr_high = bus_read(bus, cpu.pc + 1);
 
       const auto ptr = (ptr_high << 8) | ptr_low;
 
@@ -529,40 +535,41 @@ inline auto cpu_set_address_mode(Cpu* cpu, const Bus& bus, Cpu::AddressMode mode
         ? bus_read(bus, ptr & 0xFF00)
         : bus_read(bus, ptr + 1);
 
-      cpu->absolute_address = (high << 8) | low;
-      return 0;
+      data.instruction_size = 2;
+      data.new_absolute_address = (high << 8) | low;
+      return data;
     }
 
     case Mode::XIndirect:{
-      const auto ptr = bus_read(bus, cpu->pc);
-      cpu->pc++;
+      const auto ptr = bus_read(bus, cpu.pc);
 
-      const auto low = bus_read(bus, uint16_t(ptr + cpu->x) & 0x00FF);
-      const auto high = bus_read(bus, uint16_t(ptr + cpu->x + 1) & 0x00FF);
-      cpu->absolute_address = (high << 8) | low;
+      const auto low = bus_read(bus, uint16_t(ptr + cpu.x) & 0x00FF);
+      const auto high = bus_read(bus, uint16_t(ptr + cpu.x + 1) & 0x00FF);
+      data.new_absolute_address = (high << 8) | low;
+      data.instruction_size = 1;
 
-      return 0;
+      return data;
     }
 
     case Mode::IndirectY:{
-      const auto ptr = bus_read(bus, cpu->pc);
-      cpu->pc++;
+      const auto ptr = bus_read(bus, cpu.pc);
 
       const u8 low = bus_read(bus, uint16_t(ptr) & 0x00FF);
       const u8 high = bus_read(bus, uint16_t(ptr + 1) & 0x00FF);
-      cpu->absolute_address = (high << 8) | low;
-      cpu->absolute_address += cpu->y;
+      data.new_absolute_address = (high << 8) | low;
+      data.new_absolute_address += cpu.y;
+      data.instruction_size = 1;
 
       //Check if page changed:
-      if ((cpu->absolute_address & 0xFF00) != (high << 8)) return 1;
+      if ((data.new_absolute_address & 0xFF00) != (high << 8)) data.may_req_additional_clock = true;
 
-      return 0;
+      return data;
     }
 
     case Mode::Implied:
-      return 0;
+      return data;
   }
-  return 0;
+  return data;
 }
 
 inline auto cpu_set_flag(Cpu* cpu, u8 status, u8 state){
@@ -1116,7 +1123,12 @@ inline auto cpu_execute(Cpu* cpu, Bus* bus, u8 instruction){
   const auto [req_cycles, addressing] = cpu->instruction_info[instruction];
   cpu->req_cycles = req_cycles;
 
-  const auto may_req_additional_clock = cpu_set_address_mode(cpu, *bus, addressing);
+  const auto addressing_data = cpu_get_addressing_data(*cpu, *bus, addressing);
+  const auto may_req_additional_clock = addressing_data.may_req_additional_clock;
+
+  cpu->absolute_address = addressing_data.new_absolute_address;
+  cpu->relative_address = addressing_data.new_relative_address;
+  cpu->pc += addressing_data.instruction_size;
 
   switch(instruction){
 

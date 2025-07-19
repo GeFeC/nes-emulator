@@ -8,11 +8,34 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_executable(${PROJECT_NAME} 
   src/main.cpp
+  vendor/glad.c
+  vendor/stb.cpp
 )
 
 add_executable(${PROJECT_NAME}_test
   test/test.cpp
 )
+
+set(include_dirs
+  vendor/glfw/include 
+  vendor/include
+  vendor/include/glad
+)
+
+set(libs 
+  glfw
+  freetype
+  pthread
+)
+
+target_include_directories(${PROJECT_NAME} PUBLIC ${include_dirs})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${libs})
+
+add_subdirectory(${CMAKE_SOURCE_DIR}/vendor/glfw)
+
+target_compile_options(${PROJECT_NAME} PUBLIC ${FLAGS})
+
+add_dependencies(${PROJECT_NAME} glfw)
 
 file(
   COPY ${CMAKE_CURRENT_SOURCE_DIR}/test/nestest.nes 

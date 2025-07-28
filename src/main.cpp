@@ -96,8 +96,6 @@ auto main() -> int{
       }
     }
 
-
-
     auto s = clock();
 
     glfwSwapBuffers(window);

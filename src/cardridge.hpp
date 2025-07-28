@@ -78,5 +78,32 @@ inline auto cardridge_ppu_map(const Cardridge& card, u16 address){
   }
 }
 
+inline auto cardridge_cpu_write(Cardridge* cardridge, u16 address, u8 value){
+  const auto card_address = cardridge_cpu_map(*cardridge, address);
+  if (card_address != std::nullopt){
+    cardridge->program_memory[card_address.value()] = value;
+    return true;
+  }
+
+  return false;
+}
+
+inline auto cardridge_cpu_read(const Cardridge& cardridge, u16 address) -> std::optional<u8>{
+  const auto card_address = cardridge_cpu_map(cardridge, address);
+  if (card_address != std::nullopt){
+    return cardridge.program_memory[card_address.value()];
+  }
+
+  return std::nullopt;
+}
+
+inline auto cardridge_ppu_read(const Cardridge& cardridge, u16 address) -> std::optional<u8>{
+  const auto card_address = cardridge_ppu_map(cardridge, address);
+  if (card_address != std::nullopt){
+    return cardridge.char_memory[card_address.value()];
+  }
+
+  return std::nullopt;
+}
 
 } //namespace nes

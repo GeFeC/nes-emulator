@@ -164,9 +164,9 @@ inline Ppu::Ppu(){
 }
 
 inline auto ppu_read(Ppu* ppu, const Cardridge& cardridge, u16 address) -> u8{
-  const auto card_address = cardridge_ppu_map(cardridge, address);
-  if (card_address != std::nullopt){
-    return cardridge.char_memory[card_address.value()];
+  const auto cardridge_data = cardridge_ppu_read(cardridge, address);
+  if (cardridge_data != std::nullopt){
+    return cardridge_data.value(); 
   }
   else if (in_range(address, Ppu::LeftPatternTableAddressRange)){
     return ppu->left_pattern_table[address];

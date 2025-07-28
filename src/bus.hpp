@@ -21,9 +21,9 @@ struct Bus{
 };
 
 inline auto bus_read(const Bus& bus, uint16_t address) -> u8{
-  const auto card_address = cardridge_cpu_map(bus.cardridge, address);
-  if (card_address != std::nullopt){
-    return bus.cardridge.program_memory[card_address.value()];
+  const auto cardridge_data = cardridge_cpu_read(bus.cardridge, address);
+  if (cardridge_data != std::nullopt){
+    return cardridge_data.value();
   }
   else if (in_range(address, Bus::CpuRamAddressRange)){
     return bus.ram[address & (Bus::CpuRamSize - 1)];
@@ -38,9 +38,8 @@ inline auto bus_read(const Bus& bus, uint16_t address) -> u8{
 }
 
 inline auto bus_write(Bus* bus, uint16_t address, uint8_t value){
-  const auto card_address = cardridge_cpu_map(bus->cardridge, address);
-  if (card_address != std::nullopt){
-    bus->cardridge.program_memory[card_address.value()] = value;
+  if (cardridge_cpu_write(&bus->cardridge, address, value)){
+
   }
   else if (in_range(address, Bus::CpuRamAddressRange)){
     bus->ram[address & (Bus::CpuRamSize - 1)] = value;

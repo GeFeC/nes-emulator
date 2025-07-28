@@ -58,14 +58,25 @@ inline auto cardridge_from_file(const std::string& filepath){
   return cardridge;
 }
 
-inline auto cardridge_map(const Cardridge& card, u16 address){
+inline auto cardridge_cpu_map(const Cardridge& card, u16 address){
   switch(card.mapper_id()){
     case 0:
-      return mapper000_map(address, card.header.program_rom_chunks);
+      return mapper000_cpu_map(address, card.header.program_rom_chunks);
 
     default:
       throw std::runtime_error("Unsupported mapper: " + std::to_string(card.mapper_id()));
   }
 }
+
+inline auto cardridge_ppu_map(const Cardridge& card, u16 address){
+  switch(card.mapper_id()){
+    case 0:
+      return mapper000_ppu_map(address, card.header.program_rom_chunks);
+
+    default:
+      throw std::runtime_error("Unsupported mapper: " + std::to_string(card.mapper_id()));
+  }
+}
+
 
 } //namespace nes

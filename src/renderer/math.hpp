@@ -163,6 +163,9 @@ struct vec_props<T, 3>{
   union { T y, g; };
   union { T z, b; };
 
+  template<typename T2, typename = detail::all_convertible<T, T2>>
+  constexpr vec_props(const T2& x, const T2& y, const T2& z) : x(x), y(y), z(z) {}
+
   constexpr vec_props(const T& x, const T& y, const T& z) : x(x), y(y), z(z) {}
   constexpr vec_props() noexcept : vec_props(T{}, T{}, T{}) {}
 

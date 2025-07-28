@@ -1,5 +1,5 @@
-#include "../src/cpu6502.hpp"
 #include <iostream>
+#include "../src/cpu6502.hpp"
 #include <fstream>
 #include <sstream>
 #include <string>

@@ -1,44 +1,23 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <stdexcept>
+#include "window.hpp"
 #include "renderer/renderer.hpp"
 #include "nes.hpp"
 
 auto main() -> int{
-  if (!glfwInit()){
-    throw std::runtime_error("Unable to initialise GLFW");
-  }
-
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-
-  auto window = glfwCreateWindow(800, 600, "nes emulator", nullptr, nullptr);
-
-  if (!window){
-    throw std::runtime_error("Unable to create window");
-  }
-  
-  glfwMakeContextCurrent(window);
-  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
-    throw std::runtime_error("Unable to initialise glad!");
-  }
-
-  auto renderer = nes::renderer::create_renderer(nes::Ppu::ScreenSize);
-  glfwSetWindowSizeCallback(window, [](GLFWwindow*, int w, int h){
+  auto window = nes::Window("Nes emulator", gf::math::vec2(800, 600));
+  window.on_resize([](auto, int w, int h){
     glViewport(0, 0, w, h);
   });
 
   nes::Nes nes;
   nes.load_cardridge("nestest.nes");
+  auto renderer = nes::renderer::create_renderer(nes::Ppu::ScreenSize);
 
-  glfwShowWindow(window);
+  window.show();
 
-  while(!glfwWindowShouldClose(window)){
-    glClearColor(0, 0, 0, 1);
-    glClear(GL_COLOR_BUFFER_BIT);
-
+  while(!window.should_close()){
+    window.clear_buffer();
     do{
       nes.clock();
     }while(!nes.frame_complete());
@@ -70,8 +49,7 @@ auto main() -> int{
       }
     }
 
-    glfwSwapBuffers(window);
-    glfwPollEvents();
+    window.update_buffer();
   }
 
   nes::renderer::destroy_renderer(&renderer);

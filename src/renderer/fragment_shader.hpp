@@ -1,6 +1,6 @@
 #pragma once
 
-namespace nes::renderer{
+namespace nes::shaders{
 
 static auto fragment_shader_script = R"(
   #version 330 core
@@ -14,4 +14,4 @@ static auto fragment_shader_script = R"(
   }
 )";
 
-} //namespace nes
+} //namespace nes::shaders

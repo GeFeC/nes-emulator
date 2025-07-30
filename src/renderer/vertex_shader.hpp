@@ -1,6 +1,6 @@
 #pragma once
 
-namespace nes::renderer{
+namespace nes::shaders{
 
 inline auto vertex_shader_script = R"(
   #version 330 core
@@ -15,4 +15,4 @@ inline auto vertex_shader_script = R"(
   }
 )";
 
-} //namespace nes 
+} //namespace nes::shaders 

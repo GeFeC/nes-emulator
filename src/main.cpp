@@ -12,7 +12,7 @@ auto main() -> int{
 
   nes::Nes nes;
   nes.load_cardridge("nestest.nes");
-  auto renderer = nes::renderer::create_renderer(nes::Ppu::ScreenSize);
+  auto renderer = nes::Renderer(nes::Ppu::ScreenSize);
 
   window.show();
 
@@ -40,7 +40,7 @@ auto main() -> int{
             );
 
             const auto color = nes.ppu.colors[palette_color];
-            nes::renderer::draw(renderer, nes::renderer::Pixel{
+            renderer.draw(nes::Renderer::Pixel{
               gf::math::vec2(x * 8 + 7 - sprite_column, y * 8 + sprite_row),
               color.as_vec<4>(1.f)
             });
@@ -51,6 +51,4 @@ auto main() -> int{
 
     window.update_buffer();
   }
-
-  nes::renderer::destroy_renderer(&renderer);
 }

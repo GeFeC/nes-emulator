@@ -80,6 +80,10 @@ struct Nes{
     return ppu.frame_complete;
   }
 
+  auto ready_for_rendering(){
+    return ppu.palettes_started_loading;
+  }
+
 };
 
 } //namepace nes

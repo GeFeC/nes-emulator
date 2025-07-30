@@ -108,6 +108,8 @@ auto Ppu::mem_write(Nes& nes, u16 address, u8 value) -> void{
     right_pattern_table[address] = value;
   }
   else if (in_range(address, Ppu::PalettesAddressRange)){
+    palettes_started_loading = true;
+
     address &= 0x001F; //address %= 32
     if (address > 16) address -= 16;
 

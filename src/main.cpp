@@ -20,7 +20,7 @@ auto main() -> int{
     window.clear_buffer();
     do{
       nes.clock();
-    }while(!nes.frame_complete());
+    }while(!nes.frame_complete() || !nes.ready_for_rendering());
 
     for (auto y : gf::math::range(16)){
       for (auto x : gf::math::range(16)){

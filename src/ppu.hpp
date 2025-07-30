@@ -84,6 +84,7 @@ struct Ppu{
   u32 cycles = 0;
   u32 scanline = 0;
   bool frame_complete = false;
+  bool palettes_started_loading = false;
 
   Ppu();
   auto mem_read(const Nes& nes, u16 address) const -> u8;

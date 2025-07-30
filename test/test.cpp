@@ -1,6 +1,5 @@
 #include <iostream>
-#include "../src/cpu6502.hpp"
-#include <fstream>
+#include "../src/nes.hpp"
 #include <sstream>
 #include <string>
 #include <vector>
@@ -33,10 +32,9 @@ inline auto test(const std::string& name, u16 cmds, u16 expected, u16 got){
 }
 
 inline auto test_cpu(){
-  Cpu cpu;
-  Bus bus;
+  Nes nes;
 
-  bus.cardridge = cardridge_from_file("nestest.nes");
+  nes.load_cardridge("nestest.nes");
   auto log_file = file_open_for_reading("nestest.log");
 
   auto log_data = std::vector<LogData>{};
@@ -54,16 +52,17 @@ inline auto test_cpu(){
     data.cycles = std::stoi(line.substr(90));
   }
 
-  cpu.pc = 0xC000;
-  cpu_set_flag(&cpu, Cpu::Status::Unused, 1);
-  cpu_set_flag(&cpu, Cpu::Status::InterruptDisable, 1);
+  nes.cpu.pc = 0xC000;
+  nes.cpu.set_status(Cpu::Status::Unused, 1);
+  nes.cpu.set_status(Cpu::Status::InterruptDisable, 1);
 
   auto cmds = 0;
   while(cmds < log_data.size()){
     const auto& data = log_data[cmds];
 
+    auto& cpu = nes.cpu;
     test("PC", cmds, hex(data.pc), cpu.pc);
-    test("CMD", cmds, hex(data.cmd), (bus_read(bus, cpu.pc)));
+    test("CMD", cmds, hex(data.cmd), (nes.mem_read(cpu.pc)));
     test("A", cmds, hex(data.a), (cpu.accumulator));
     test("X", cmds, hex(data.x), (cpu.x));
     test("Y", cmds, hex(data.y), (cpu.y));
@@ -73,7 +72,7 @@ inline auto test_cpu(){
 
     try{
       do{
-        cpu_clock(&cpu, &bus);
+        nes.cpu.clock(nes);
         cpu.cycles++;
       }while(cpu.req_cycles);
     }
@@ -85,8 +84,8 @@ inline auto test_cpu(){
   }
 
   std::cerr << "CPU TESTS PASSED!\n";
-  std::cerr << "0x02: " << int(bus.ram[2]) << '\n';
-  std::cerr << "0x03: " << int(bus.ram[3]) << '\n';
+  std::cerr << "0x02: " << int(nes.ram[2]) << '\n';
+  std::cerr << "0x03: " << int(nes.ram[3]) << '\n';
 }
 
 } //namespace nes

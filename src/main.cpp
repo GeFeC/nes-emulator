@@ -40,15 +40,16 @@ auto main() -> int{
             );
 
             const auto color = nes.ppu.colors[palette_color];
-            renderer.draw(nes::Renderer::Pixel{
+            renderer.set_pixel(
               gf::math::vec2(x * 8 + 7 - sprite_column, y * 8 + sprite_row),
-              color.as_vec<4>(1.f)
-            });
+              color
+            );
           }
         }
       }
     }
 
+    renderer.render();
     window.update_buffer();
   }
 }

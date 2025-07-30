@@ -15,8 +15,8 @@ namespace gfm = gf::math;
 
 struct Renderer{
   struct Pixel{
-    gfm::vec2 position; 
-    gfm::vec4 color;
+    gfm::vec2 position;
+    gfm::vec3 color;
   };
 
   enum class ShaderType{
@@ -24,10 +24,12 @@ struct Renderer{
     Fragment = GL_FRAGMENT_SHADER
   };
 
-  static constexpr auto VaoStride = 4;
   GLuint vertex_shader, fragment_shader;
   GLuint shader_program;
-  GLuint vao, vbo;
+  GLuint vao, vbo, vbo_instanced;
+
+  gfm::vec2 buffer_size;
+  std::vector<Pixel> pixels;
 
   static auto create_shader(const char* script, Renderer::ShaderType type){
     const auto shader = glCreateShader(static_cast<int>(type));
@@ -50,32 +52,23 @@ struct Renderer{
     return 0u;
   }
 
-  auto set_uniform(const std::string& name, const gfm::mat4& matrix){
-    glUniformMatrix4fv(
-      glGetUniformLocation(shader_program, name.c_str()), 
-      1, 
-      GL_FALSE, 
-      &matrix[0][0]
-    );
-  }
-
-  auto set_uniform(const std::string& name, const gfm::vec4& vec){
-    glUniform4fv(
-      glGetUniformLocation(shader_program, name.c_str()), 
-      1, 
-      &vec.x
-    );
-  }
-
   Renderer(const gfm::vec2& buffer_size){
+    this->buffer_size = buffer_size;
+    pixels.resize(buffer_size.x * buffer_size.y);
+    for (auto y : gfm::range(buffer_size.y)){
+      for (auto x : gfm::range(buffer_size.x)){
+        pixels[y * buffer_size.x + x].position = gfm::vec2(x, y);
+      }
+    }
+    
     //Create VAO
     auto vbo_data = std::array{
-      0.f, 0.f, 0.f, 0.f,
-      1.f, 0.f, 1.f, 0.f,
-      1.f, 1.f, 1.f, 1.f,
-      0.f, 0.f, 0.f, 0.f,
-      0.f, 1.f, 0.f, 1.f,
-      1.f, 1.f, 1.f, 1.f
+      0.f, 0.f, 
+      1.f, 0.f,
+      1.f, 1.f,
+      0.f, 0.f,
+      0.f, 1.f,
+      1.f, 1.f,
     };
 
     glGenVertexArrays(1, &vao);
@@ -90,8 +83,22 @@ struct Renderer{
       vbo_data.data(), GL_STATIC_DRAW
     );
 
-    vao_add_attrib_ptr(0, 2, 0);
-    vao_add_attrib_ptr(1, 2, 2);
+    vao_add_attrib_ptr(0, 2, 0, 2);
+
+    //Instanced array
+    glGenBuffers(1, &vbo_instanced);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_instanced);
+    glBufferData(
+      GL_ARRAY_BUFFER, 
+      sizeof(Pixel) * pixels.size(),
+      pixels.data(),
+      GL_STATIC_DRAW
+    );
+
+    vao_add_attrib_ptr(1, 2, 0, 5);
+    vao_add_attrib_ptr(2, 3, 2, 5);
+    glVertexAttribDivisor(1, 1);
+    glVertexAttribDivisor(2, 1);
 
     //Create ShaderProgram
     vertex_shader = create_shader(shaders::vertex_shader_script, Renderer::ShaderType::Vertex);
@@ -127,22 +134,48 @@ struct Renderer{
     glDeleteProgram(shader_program);
   }
 
-  inline auto draw(const Pixel& pixel){
-    const auto model = gfm::translation(pixel.position.as_vec<3>(0.f));
-    set_uniform("model", model);
-    set_uniform("color", pixel.color);
+  auto set_uniform(const std::string& name, const gfm::mat4& matrix) -> void{
+    glUniformMatrix4fv(
+      glGetUniformLocation(shader_program, name.c_str()), 
+      1, 
+      GL_FALSE, 
+      &matrix[0][0]
+    );
+  }
 
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+  auto set_uniform(const std::string& name, const gfm::vec4& vec) -> void{
+    glUniform4fv(
+      glGetUniformLocation(shader_program, name.c_str()), 
+      1, 
+      &vec.x
+    );
+  }
+
+  auto set_pixel(const gfm::vec2& position, const gfm::vec3& color){
+    const auto [x, y] = position;
+    pixels[y * buffer_size.x + x].color = color;
+  }
+
+  auto render(){
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_instanced);
+    glBufferData(
+      GL_ARRAY_BUFFER, 
+      sizeof(Pixel) * pixels.size(),
+      pixels.data(),
+      GL_STATIC_DRAW
+    );
+
+    glDrawArraysInstanced(GL_TRIANGLES, 0, 6, pixels.size());
   }
 
 private:
-  auto vao_add_attrib_ptr(GLuint index, GLuint size, GLuint position) noexcept -> void{
+  auto vao_add_attrib_ptr(GLuint index, GLuint size, GLuint position, GLuint stride) noexcept -> void{
     glVertexAttribPointer(
       index, 
       size, 
       GL_FLOAT, 
       GL_FALSE, 
-      Renderer::VaoStride * sizeof(float), 
+      stride * sizeof(float), 
       (void*)(position * sizeof(float))
     );
 

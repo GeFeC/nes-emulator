@@ -79,6 +79,7 @@ struct Cpu{
 
   auto stack_push(Nes& nes, u8 data) -> void;
   auto stack_pull(Nes& nes) -> u8;
+  auto stack_pull_u16(Nes& nes) -> u16;
 
   auto lda(Nes& nes) -> void;
   auto ldx(Nes& nes) -> void;

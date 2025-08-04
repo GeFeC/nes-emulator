@@ -47,6 +47,13 @@ struct Nes{
     return u8(0);
   }
 
+  auto mem_read_u16(u16 address) -> u16{
+    const auto low = mem_read(address);
+    const auto high = mem_read(address + 1);
+
+    return (high << 8) | low;
+  }
+
   auto mem_write(u16 address, u8 value){
     if (cardridge.write_program(address, value)){
 

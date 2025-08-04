@@ -17,6 +17,10 @@ inline auto file_open_for_reading(const std::string& filepath, std::ios::openmod
   return std::move(file);
 }
 
+inline auto make_u16(u8 high, u8 low){
+  return (high << 8) | low;
+}
+
 template<typename T>
 using range_type = std::pair<T, T>;
 

@@ -49,49 +49,42 @@ auto Cpu::get_addressing_data(Nes& nes, Cpu::AddressMode mode) -> Cpu::Addressin
       return data;
 
     case Mode::Absolute: {
-      const auto low = nes.mem_read(pc);
-      const auto high = nes.mem_read(pc + 1);
-
-      data.new_absolute_address = (high << 8) | low;
+      data.new_absolute_address = nes.mem_read_u16(pc);                           
       data.instruction_size = 2;
 
       return data;
     }
 
     case Mode::AbsoluteX:{
-      const auto low = nes.mem_read(pc);
-      const auto high = nes.mem_read(pc + 1);
+      data.new_absolute_address = nes.mem_read_u16(pc);
+      const auto high = data.new_absolute_address & 0xFF00;
 
-      data.new_absolute_address = (high << 8) | low;
       data.new_absolute_address += x;
       data.instruction_size = 2;
 
       //Check if page changed:
-      if ((data.new_absolute_address & 0xFF00) != (high << 8)) data.may_req_additional_cycle = true;
+      if ((data.new_absolute_address & 0xFF00) != high) data.may_req_additional_cycle = true;
 
       return data;
     }
 
     case Mode::AbsoluteY:{
-      const auto low = nes.mem_read(pc);
-      const auto high = nes.mem_read(pc + 1);
+      data.new_absolute_address = nes.mem_read_u16(pc);
+      const auto high = data.new_absolute_address & 0xFF00;
 
-      data.new_absolute_address = (high << 8) | low;
       data.new_absolute_address += y;
       data.instruction_size = 2;
 
       //Check if page changed:
-      if ((data.new_absolute_address & 0xFF00) != (high << 8)) data.may_req_additional_cycle = true;
+      if ((data.new_absolute_address & 0xFF00) != high) data.may_req_additional_cycle = true;
 
       return data;
 
     }
 
     case Mode::Indirect:{
-      const auto ptr_low = nes.mem_read(pc);
-      const auto ptr_high = nes.mem_read(pc + 1);
-
-      const auto ptr = (ptr_high << 8) | ptr_low;
+      const auto ptr = nes.mem_read_u16(pc);
+      const auto ptr_low = ptr & 0x00FF;
 
       const auto low = nes.mem_read(ptr);
       const auto high = ptr_low == 0x00FF 
@@ -99,7 +92,7 @@ auto Cpu::get_addressing_data(Nes& nes, Cpu::AddressMode mode) -> Cpu::Addressin
         : nes.mem_read(ptr + 1);
 
       data.instruction_size = 2;
-      data.new_absolute_address = (high << 8) | low;
+      data.new_absolute_address = make_u16(high, low);
       return data;
     }
 
@@ -108,7 +101,8 @@ auto Cpu::get_addressing_data(Nes& nes, Cpu::AddressMode mode) -> Cpu::Addressin
 
       const auto low = nes.mem_read(uint16_t(ptr + x) & 0x00FF);
       const auto high = nes.mem_read(uint16_t(ptr + x + 1) & 0x00FF);
-      data.new_absolute_address = (high << 8) | low;
+
+      data.new_absolute_address = make_u16(high, low);
       data.instruction_size = 1;
 
       return data;
@@ -119,7 +113,7 @@ auto Cpu::get_addressing_data(Nes& nes, Cpu::AddressMode mode) -> Cpu::Addressin
 
       const u8 low = nes.mem_read(uint16_t(ptr) & 0x00FF);
       const u8 high = nes.mem_read(uint16_t(ptr + 1) & 0x00FF);
-      data.new_absolute_address = (high << 8) | low;
+      data.new_absolute_address = make_u16(high, low);
       data.new_absolute_address += y;
       data.instruction_size = 1;
 
@@ -161,6 +155,13 @@ auto Cpu::stack_pull(Nes& nes) -> u8{
   sp++;
   u8 value = nes.mem_read(Cpu::StackEnd + sp);
   return value;
+}
+
+auto Cpu::stack_pull_u16(Nes& nes) -> u16{
+  const auto low = stack_pull(nes);
+  const auto high = stack_pull(nes);
+
+  return make_u16(high, low);
 }
 
 auto Cpu::lda(Nes& nes) -> void{
@@ -464,10 +465,7 @@ auto Cpu::jsr(Nes& nes) -> void{
 }
 
 auto Cpu::rts(Nes& nes) -> void{
-  u8 low = stack_pull(nes);
-  u8 high = stack_pull(nes);
-
-  pc = (high << 8) | low;
+  pc = stack_pull_u16(nes);
   pc++;
 }
 
@@ -616,10 +614,10 @@ auto Cpu::brk(Nes& nes) -> void{
 
 auto Cpu::rti(Nes& nes) -> void{
   status = stack_pull(nes);
+
   set_status(Cpu::Status::BreakCommand, 0);
-  const u8 low = stack_pull(nes);
-  const u8 high = stack_pull(nes);
-  pc = low | u16(high << 8);
+
+  pc = stack_pull_u16(nes);
 }
 
 //Illegal opcodes:

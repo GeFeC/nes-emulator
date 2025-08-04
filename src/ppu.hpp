@@ -2,6 +2,7 @@
 
 #include "aliases.hpp"
 #include "renderer/math.hpp"
+#include <array>
 
 namespace nes{
 
@@ -31,7 +32,7 @@ struct Ppu{
   u8 current_palette = 0;
 
   u8 palettes[PalettesCount * PaletteSize];
-  gf::math::vec3 colors[64];
+  std::array<gf::math::vec3, 64> colors;
 
   struct Status{
     enum{

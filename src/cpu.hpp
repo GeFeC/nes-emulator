@@ -1,5 +1,6 @@
 #pragma once
 #include "aliases.hpp"
+#include <array>
 
 namespace nes{
 
@@ -66,7 +67,7 @@ struct Cpu{
   u8 req_cycles = 0;
   u32 cycles = 7;
 
-  InstructionInfo instruction_info[16 * 16];
+  std::array<InstructionInfo, 16 * 16> instruction_info;
 
   Cpu();
   auto get_addressing_data(Nes& nes, Cpu::AddressMode mode) -> AddressingData;

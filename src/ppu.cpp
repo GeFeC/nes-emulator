@@ -13,11 +13,28 @@ auto Ppu::mem_read(const Nes& nes, u16 address) const -> u8{
   if (cardridge_data != std::nullopt){
     return cardridge_data.value(); 
   }
-  else if (in_range(address, Ppu::LeftPatternTableAddressRange)){
-    return left_pattern_table[address];
-  }
-  else if (in_range(address, Ppu::RightPatternTableAddressRange)){
-    return right_pattern_table[address];
+  else if (in_range(address, Ppu::NametablesAddressRange)){
+    address &= 0x0FFF;
+    auto nametable_index = 0;
+
+    if (nes.cardridge.mirroring() == Cardridge::Mirroring::Vertical){
+      if (
+        in_range(address, Ppu::TopRightNametableAddressRange) ||
+        in_range(address, Ppu::BottomRightNametableAddressRange)
+      ){
+        nametable_index = 1;
+      }
+    }
+    else if (nes.cardridge.mirroring() == Cardridge::Mirroring::Vertical){
+      if (
+        in_range(address, Ppu::BottomLeftNametableAddressRange) ||
+        in_range(address, Ppu::BottomRightNametableAddressRange)
+      ){
+        nametable_index = 1;
+      }
+    }
+
+    return nametables[nametable_index][address & 0x03FF];
   }
   else if (in_range(address, Ppu::PalettesAddressRange)){
     address &= 0x001F; //address %= 32
@@ -32,11 +49,28 @@ auto Ppu::mem_read(const Nes& nes, u16 address) const -> u8{
 auto Ppu::mem_write(Nes& nes, u16 address, u8 value) -> void{
   if (nes.cardridge.write_pattern(address, value)){
   }
-  else if (in_range(address, Ppu::LeftPatternTableAddressRange)){
-    left_pattern_table[address] = value;
-  }
-  else if (in_range(address, Ppu::RightPatternTableAddressRange)){
-    right_pattern_table[address] = value;
+  else if (in_range(address, Ppu::NametablesAddressRange)){
+    address &= 0x0FFF;
+    auto nametable_index = 0;
+
+    if (nes.cardridge.mirroring() == Cardridge::Mirroring::Vertical){
+      if (
+        in_range(address, Ppu::TopRightNametableAddressRange) ||
+        in_range(address, Ppu::BottomRightNametableAddressRange)
+      ){
+        nametable_index = 1;
+      }
+    }
+    else if (nes.cardridge.mirroring() == Cardridge::Mirroring::Vertical){
+      if (
+        in_range(address, Ppu::BottomLeftNametableAddressRange) ||
+        in_range(address, Ppu::BottomRightNametableAddressRange)
+      ){
+        nametable_index = 1;
+      }
+    }
+
+    nametables[nametable_index][address & 0x03FF] = value;
   }
   else if (in_range(address, Ppu::PalettesAddressRange)){
     palettes_started_loading = true;
@@ -66,7 +100,8 @@ auto Ppu::cpu_read(const Nes& nes, u16 address) -> u8{
         data = data_buffer;
       }
 
-      this->address++;
+      const auto increment_mode = control & Ppu::Control::IncrementMode;
+      this->address += increment_mode ? 32 : 1;
       return data;
     }
   }
@@ -97,7 +132,8 @@ auto Ppu::cpu_write(Nes& nes, u16 address, u8 value) -> void{
       break;
     case 0x0007:
       mem_write(nes, this->address, value);
-      this->address++;
+      const auto increment_mode = control & Ppu::Control::IncrementMode;
+      this->address += increment_mode ? 32 : 1;
       break;
   }
 }
@@ -121,7 +157,5 @@ auto Ppu::clock() -> void{
     frame_complete = true;
   }
 }
-
-
 
 } //namespace nes

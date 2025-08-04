@@ -28,8 +28,17 @@ struct Cardridge{
   std::vector<u8> char_memory;
   std::unique_ptr<Mapper> mapper;
 
+  enum class Mirroring{
+    Horizontal,
+    Vertical
+  };
+
   auto mapper_id() const{
     return (header.mapper2 & 0b11110000) | (header.mapper1 >> 4);
+  }
+
+  auto mirroring() const{
+    return (header.mapper1 & 0x01) ? Mirroring::Vertical : Mirroring::Horizontal;
   }
 
   auto from_file(const std::string& filepath){

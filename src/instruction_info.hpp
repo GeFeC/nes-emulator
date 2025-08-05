@@ -79,7 +79,7 @@ inline auto get_instruction_info(){
   info[0x10] = { 2, AddressMode::Relative };
 
   //BRK
-  info[0x00] = { 7, AddressMode::Implied };
+  info[0x00] = { 7, AddressMode::Immediate };
 
   //BVC
   info[0x50] = { 2, AddressMode::Relative };

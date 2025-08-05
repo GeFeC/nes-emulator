@@ -1,6 +1,7 @@
 #include "ppu.hpp"
 #include "nes.hpp"
 #include "colors.hpp"
+#include <iostream>
 
 namespace nes{
 
@@ -86,7 +87,7 @@ auto Ppu::cpu_read(const Nes& nes, u16 address) -> u8{
   address &= 0x0007;
   switch(address){
     case 0x0002:{
-      const auto status = this->status & 0b11100000;
+      const auto status = (this->status & 0b11100000) | (data_buffer & 0b00011111);
       this->status &= ~Ppu::Status::VBlank;
       address_latch = Ppu::AddressLatch::MSB;
       return status;
@@ -120,7 +121,7 @@ auto Ppu::cpu_write(Nes& nes, u16 address, u8 value) -> void{
       mask = value;
       break;
 
-    case 0x0006: 
+    case 0x0006: {
       if (address_latch == Ppu::AddressLatch::LSB){
         this->address = (this->address & 0xFF00) | value;
         address_latch = Ppu::AddressLatch::MSB;
@@ -130,6 +131,7 @@ auto Ppu::cpu_write(Nes& nes, u16 address, u8 value) -> void{
         address_latch = Ppu::AddressLatch::LSB;
       }
       break;
+    }
     case 0x0007:
       mem_write(nes, this->address, value);
       const auto increment_mode = control & Ppu::Control::IncrementMode;
@@ -150,6 +152,10 @@ auto Ppu::clock() -> void{
 
   if (scanline > Ppu::ScreenSize.y && cycles == 0){
     status |= Ppu::Status::VBlank;
+
+    if (control & Control::EnableNmi){
+      nmi = true;
+    }
   }
 
   if (scanline > Ppu::MaxScanlines){

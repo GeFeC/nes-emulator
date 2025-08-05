@@ -46,7 +46,7 @@ auto main() -> int{
   nes::Nes nes;
   nes.load_cardridge("nestest.nes");
   auto renderer = nes::Renderer(nes::Ppu::ScreenSize);
-
+  
   window.show();
   auto delta_time = 0.f;
 
@@ -54,13 +54,13 @@ auto main() -> int{
     const auto start_frame_time = glfwGetTime();
 
     if (glfwGetKey(window.window, GLFW_KEY_ENTER)){
-      std::cerr << delta_time << '\n';
+      std::cerr << 1.0 / delta_time << '\n';
     }
 
     window.clear_buffer();
     do{
       nes.clock();
-    }while(!nes.frame_complete() || !nes.ready_for_rendering());
+    }while(!nes.frame_complete());
 
     draw_sprite(nes, renderer, gf::math::vec2(240.f, 232.f), gf::math::vec2(2, 3));
 
@@ -83,6 +83,7 @@ auto main() -> int{
     }
 
     renderer.render();
+    window.use_vsync();
     window.update_buffer();
 
     delta_time = glfwGetTime() - start_frame_time;

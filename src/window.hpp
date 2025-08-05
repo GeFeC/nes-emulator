@@ -52,6 +52,10 @@ struct Window{
     glClear(GL_COLOR_BUFFER_BIT);
   }
 
+  auto use_vsync(){
+    glfwSwapInterval(1);
+  }
+
   auto update_buffer(){
     glfwSwapBuffers(window);
     glfwPollEvents();

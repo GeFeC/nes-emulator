@@ -151,6 +151,11 @@ auto Cpu::stack_push(Nes& nes, u8 data) -> void{
   sp--;
 }
 
+auto Cpu::stack_push_u16(Nes& nes, u16 data) -> void{
+  stack_push(nes, (data >> 8) & 0x00FF);
+  stack_push(nes, data & 0x00FF);
+}
+
 auto Cpu::stack_pull(Nes& nes) -> u8{
   sp++;
   u8 value = nes.mem_read(Cpu::StackEnd + sp);
@@ -1187,6 +1192,38 @@ auto Cpu::clock(Nes& nes) -> void{
   }
 
   req_cycles--;
+}
+
+auto Cpu::irq(Nes& nes) -> void{
+  if (get_status(Cpu::Status::InterruptDisable) == 0){
+    stack_push_u16(nes, pc);
+
+    set_status(Cpu::Status::BreakCommand, 0);
+    set_status(Cpu::Status::Unused, 1);
+    set_status(Cpu::Status::InterruptDisable, 1);
+
+    stack_push(nes, status);
+
+    absolute_address = 0xFFFE;
+    pc = nes.mem_read_u16(absolute_address);
+
+    req_cycles = 7;
+  }
+}
+
+auto Cpu::nmi(Nes& nes) -> void{
+  stack_push_u16(nes, pc);
+
+  set_status(Cpu::Status::BreakCommand, 0);
+  set_status(Cpu::Status::Unused, 1);
+  set_status(Cpu::Status::InterruptDisable, 1);
+
+  stack_push(nes, status);
+
+  absolute_address = 0xFFFA;
+  pc = nes.mem_read_u16(absolute_address);
+
+  req_cycles = 7;
 }
 
 } //namespace nes

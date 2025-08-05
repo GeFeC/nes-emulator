@@ -24,9 +24,10 @@ struct Nes{
 
   auto load_cardridge(const std::string& filepath){
     cardridge.from_file(filepath);
+    cpu.absolute_address = 0xFFFC;
 
-    u16 lo = mem_read(0xFFFC);
-    u16 hi = mem_read(0xFFFD);
+    u16 lo = mem_read(cpu.absolute_address);
+    u16 hi = mem_read(cpu.absolute_address + 1);
 
     cpu.pc = (hi << 8) | lo;
   }
@@ -80,6 +81,12 @@ struct Nes{
     if (cycles % 3 == 0){
       cpu.clock(*this);
     }
+
+    if (ppu.nmi){
+      ppu.nmi = false;
+      cpu.nmi(*this);
+    }
+
     cycles++;
   }
 

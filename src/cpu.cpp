@@ -474,109 +474,62 @@ auto Cpu::rts(Nes& nes) -> void{
   pc++;
 }
 
+static auto cpu_branch(Cpu& cpu){
+  cpu.req_cycles++;
+  cpu.absolute_address = cpu.pc + cpu.relative_address;
+  if (cpu.relative_address > 127){
+    cpu.absolute_address -= 256;
+  }
+
+  if ((cpu.pc & 0xFF00) != (cpu.absolute_address & 0xFF00)) cpu.req_cycles++;
+  cpu.pc = cpu.absolute_address;
+}
+
 auto Cpu::bcc() -> void{
   if (get_status(Cpu::Status::Carry) == 0){
-    req_cycles++;
-    absolute_address = pc + relative_address;
-    if (relative_address > 127){
-      absolute_address -= 256;
-    }
-
-    if ((pc & 0xFF00) != (absolute_address & 0xFF00)) req_cycles++;
-    pc = absolute_address;
+    cpu_branch(*this);
   }
 }
 
 auto Cpu::bcs() -> void{
   if (get_status(Cpu::Status::Carry)){
-    req_cycles++;
-    absolute_address = pc + relative_address;
-
-    if (relative_address > 127){
-      absolute_address -= 256;
-    }
-
-    if ((pc & 0xFF00) != (absolute_address & 0xFF00)) req_cycles++;
-
-    pc = absolute_address;
+    cpu_branch(*this);
   }
 }
 
 auto Cpu::beq() -> void{
   if (get_status(Cpu::Status::Zero) == 1){
-    req_cycles++;
-    absolute_address = pc + relative_address;
-    if (relative_address > 127){
-      absolute_address -= 256;
-    }
-
-    if ((pc & 0xFF00) != (absolute_address & 0xFF00)) req_cycles++;
-    pc = absolute_address;
+    cpu_branch(*this);
   }
 }
 
 auto Cpu::bne() -> void{
   if (get_status(Cpu::Status::Zero) == 0){
-    req_cycles++;
-    absolute_address = pc + relative_address;
-    if (relative_address > 127){
-      absolute_address -= 256;
-    }
-
-    if ((pc & 0xFF00) != (absolute_address & 0xFF00)) req_cycles++;
-    pc = absolute_address;
+    cpu_branch(*this);
   }
 }
 
 auto Cpu::bpl() -> void{
   if (get_status(Cpu::Status::Negative) == 0){
-    req_cycles++;
-    absolute_address = pc + relative_address;
-    if (relative_address > 127){
-      absolute_address -= 256;
-    }
-
-    if ((pc & 0xFF00) != (absolute_address & 0xFF00)) req_cycles++;
-    pc = absolute_address;
+    cpu_branch(*this);
   }
 }
 
 auto Cpu::bmi() -> void{
   if (get_status(Cpu::Status::Negative)){
-    req_cycles++;
-    absolute_address = pc + relative_address;
-    if (relative_address > 127){
-      absolute_address -= 256;
-    }
-
-    if ((pc & 0xFF00) != (absolute_address & 0xFF00)) req_cycles++;
-    pc = absolute_address;
+    cpu_branch(*this);
   }
 }
 
 auto Cpu::bvc() -> void{
   if (get_status(Cpu::Status::Overflow) == 0){
-    req_cycles++;
-    absolute_address = pc + relative_address;
-    if (relative_address > 127){
-      absolute_address -= 256;
-    }
-
-    if ((pc & 0xFF00) != (absolute_address & 0xFF00)) req_cycles++;
-    pc = absolute_address;
+    cpu_branch(*this);
   }
 }
 
 auto Cpu::bvs() -> void{
   if (get_status(Cpu::Status::Overflow)){
-    req_cycles++;
-    absolute_address = pc + relative_address;
-    if (relative_address > 127){
-      absolute_address -= 256;
-    }
-
-    if ((pc & 0xFF00) != (absolute_address & 0xFF00)) req_cycles++;
-    pc = absolute_address;
+    cpu_branch(*this);
   }
 }
 
@@ -1194,36 +1147,29 @@ auto Cpu::clock(Nes& nes) -> void{
   req_cycles--;
 }
 
+static auto cpu_interrupt(Cpu& cpu, Nes& nes, u16 absolute_address){
+  cpu.stack_push_u16(nes, cpu.pc);
+
+  cpu.set_status(Cpu::Status::BreakCommand, 0);
+  cpu.set_status(Cpu::Status::Unused, 1);
+  cpu.set_status(Cpu::Status::InterruptDisable, 1);
+
+  cpu.stack_push(nes, cpu.status);
+
+  cpu.absolute_address = absolute_address;
+  cpu.pc = nes.mem_read_u16(absolute_address);
+
+  cpu.req_cycles = 7;
+}
+
 auto Cpu::irq(Nes& nes) -> void{
   if (get_status(Cpu::Status::InterruptDisable) == 0){
-    stack_push_u16(nes, pc);
-
-    set_status(Cpu::Status::BreakCommand, 0);
-    set_status(Cpu::Status::Unused, 1);
-    set_status(Cpu::Status::InterruptDisable, 1);
-
-    stack_push(nes, status);
-
-    absolute_address = 0xFFFE;
-    pc = nes.mem_read_u16(absolute_address);
-
-    req_cycles = 7;
+    cpu_interrupt(*this, nes, 0xFFFE);
   }
 }
 
 auto Cpu::nmi(Nes& nes) -> void{
-  stack_push_u16(nes, pc);
-
-  set_status(Cpu::Status::BreakCommand, 0);
-  set_status(Cpu::Status::Unused, 1);
-  set_status(Cpu::Status::InterruptDisable, 1);
-
-  stack_push(nes, status);
-
-  absolute_address = 0xFFFA;
-  pc = nes.mem_read_u16(absolute_address);
-
-  req_cycles = 7;
+  cpu_interrupt(*this, nes, 0xFFFA);
 }
 
 } //namespace nes

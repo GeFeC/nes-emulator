@@ -83,6 +83,11 @@ auto Ppu::mem_write(Nes& nes, u16 address, u8 value) -> void{
   }
 }
 
+static auto ppu_increment_address(Ppu& ppu){
+  const auto increment_mode = ppu.control & Ppu::Control::IncrementMode;
+  ppu.address += increment_mode ? 32 : 1;
+}
+
 auto Ppu::cpu_read(const Nes& nes, u16 address) -> u8{
   address &= 0x0007;
   switch(address){
@@ -101,8 +106,7 @@ auto Ppu::cpu_read(const Nes& nes, u16 address) -> u8{
         data = data_buffer;
       }
 
-      const auto increment_mode = control & Ppu::Control::IncrementMode;
-      this->address += increment_mode ? 32 : 1;
+      ppu_increment_address(*this);
       return data;
     }
   }
@@ -134,8 +138,7 @@ auto Ppu::cpu_write(Nes& nes, u16 address, u8 value) -> void{
     }
     case 0x0007:
       mem_write(nes, this->address, value);
-      const auto increment_mode = control & Ppu::Control::IncrementMode;
-      this->address += increment_mode ? 32 : 1;
+      ppu_increment_address(*this);
       break;
   }
 }

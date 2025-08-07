@@ -76,7 +76,7 @@ struct Nes{
   }
 
   auto clock(){
-    ppu.clock();
+    ppu.clock(*this);
 
     if (cycles % 3 == 0){
       cpu.clock(*this);

@@ -24,7 +24,7 @@ inline auto make_u16(u8 high, u8 low){
 template<typename T>
 using range_type = std::pair<T, T>;
 
-inline auto in_range(u16 value, const range_type<u16>& range){
+inline auto in_range(i32 value, const range_type<i32>& range){
   return value >= range.first && value <= range.second;
 }
 

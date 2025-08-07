@@ -4,10 +4,12 @@
 #include "math.hpp"
 #include "vertex_shader.hpp"
 #include "fragment_shader.hpp"
+#include "../util.hpp"
 
 #include <string>
 #include <stdexcept>
 #include <array>
+#include <iostream>
 
 namespace nes{
 
@@ -27,6 +29,7 @@ struct Renderer{
   GLuint vertex_shader, fragment_shader;
   GLuint shader_program;
   GLuint vao, vbo, vbo_instanced;
+  bool initialised = false;
 
   gfm::vec2 buffer_size;
   std::vector<Pixel> pixels;
@@ -52,7 +55,9 @@ struct Renderer{
     return 0u;
   }
 
-  Renderer(const gfm::vec2& buffer_size){
+  Renderer() = default;
+
+  auto init(const gfm::vec2& buffer_size){
     this->buffer_size = buffer_size;
     pixels.resize(buffer_size.x * buffer_size.y);
     for (auto y : gfm::range(buffer_size.y)){
@@ -88,12 +93,7 @@ struct Renderer{
     //Instanced array
     glGenBuffers(1, &vbo_instanced);
     glBindBuffer(GL_ARRAY_BUFFER, vbo_instanced);
-    glBufferData(
-      GL_ARRAY_BUFFER, 
-      sizeof(Pixel) * pixels.size(),
-      pixels.data(),
-      GL_STATIC_DRAW
-    );
+    
 
     vao_add_attrib_ptr(1, 2, 0, 5);
     vao_add_attrib_ptr(2, 3, 2, 5);
@@ -126,11 +126,16 @@ struct Renderer{
     glUseProgram(shader_program);
 
     set_uniform("projection", gfm::ortho(0.f, buffer_size.x, 0.f, buffer_size.y, 0.1f, 1000.f));
+
+    initialised = true;
   }
 
   ~Renderer(){
+    if (!initialised) return;
+
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
+    glDeleteBuffers(1, &vbo_instanced);
     glDeleteProgram(shader_program);
   }
 
@@ -153,6 +158,10 @@ struct Renderer{
 
   auto set_pixel(const gfm::vec2& position, const gfm::vec3& color){
     const auto [x, y] = position;
+
+    if (!in_range(x, std::make_pair(0, buffer_size.x - 1))) return;
+    if (!in_range(y, std::make_pair(0, buffer_size.y - 1))) return;
+
     pixels[y * buffer_size.x + x].color = color;
   }
 

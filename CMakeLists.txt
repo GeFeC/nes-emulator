@@ -18,6 +18,8 @@ add_executable(${PROJECT_NAME}_test
   test/test.cpp
   src/cpu.cpp
   src/ppu.cpp
+  vendor/glad.c
+  vendor/stb.cpp
 )
 
 set(include_dirs
@@ -33,13 +35,16 @@ set(libs
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${include_dirs})
+target_include_directories(${PROJECT_NAME}_test PUBLIC ${include_dirs})
 target_link_libraries(${PROJECT_NAME} PUBLIC ${libs})
-
-add_subdirectory(${CMAKE_SOURCE_DIR}/vendor/glfw)
+target_link_libraries(${PROJECT_NAME}_test PUBLIC ${libs})
 
 target_compile_options(${PROJECT_NAME} PUBLIC ${FLAGS})
+target_compile_options(${PROJECT_NAME}_test PUBLIC ${FLAGS})
 
+add_subdirectory(${CMAKE_SOURCE_DIR}/vendor/glfw)
 add_dependencies(${PROJECT_NAME} glfw)
+add_dependencies(${PROJECT_NAME}_test glfw)
 
 file(
   COPY ${CMAKE_CURRENT_SOURCE_DIR}/test/nestest.nes 

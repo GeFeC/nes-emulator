@@ -2,6 +2,7 @@
 
 #include "aliases.hpp"
 #include "renderer/math.hpp"
+#include "renderer/renderer.hpp"
 #include <array>
 
 namespace nes{
@@ -25,6 +26,8 @@ struct Ppu{
   static constexpr auto TopRightNametableAddressRange = std::make_pair(0x0400, 0x07FF);
   static constexpr auto BottomLeftNametableAddressRange = std::make_pair(0x0800, 0x0BFF);
   static constexpr auto BottomRightNametableAddressRange = std::make_pair(0x0C00, 0x0FFF);
+
+  Renderer renderer;
 
   u8 current_palette = 0;
 
@@ -66,16 +69,23 @@ struct Ppu{
     };
   };
 
-  struct Scroll{
-    u8 offset_x;
-    u8 offset_y;
-    u8 cell_offset_x;
-    u8 cell_offset_y;
-  };
-
   enum class AddressLatch{
     LSB,
     MSB
+  };
+
+  struct LoopyRegisterProps{
+    u16 scroll_x : 5;
+    u16 scroll_y : 5;
+    u16 nametable_x : 1;
+    u16 nametable_y : 1;
+    u16 cell_scroll_y : 3;
+    u16 unused : 1;
+  };
+
+  union LoopyRegister{
+    LoopyRegisterProps props;
+    u16 data = 0;
   };
 
   //Registers:
@@ -85,9 +95,22 @@ struct Ppu{
 
   AddressLatch address_latch = AddressLatch::MSB;
   u8 data_buffer = 0;
-  u16 address = 0;
 
-  u32 cycles = 0;
+  LoopyRegister vram_address;
+  LoopyRegister tram_address;
+  u8 cell_scroll_x = 0;
+
+  u8 bg_next_tile_id = 0;
+  u8 bg_next_tile_attribute = 0;
+  u8 bg_next_tile_lsb = 0;
+  u8 bg_next_tile_msb = 0;
+
+  u16 bg_shifter_pattern_low = 0;
+  u16 bg_shifter_pattern_high = 0;
+  u16 bg_shifter_attribute_low = 0;
+  u16 bg_shifter_attribute_high = 0;
+
+  i32 cycles = 0;
   i32 scanline = 0;
   bool frame_complete = false;
   bool palettes_started_loading = false;
@@ -99,7 +122,12 @@ struct Ppu{
   auto mem_write(Nes& nes, u16 address, u8 value) -> void;
   auto cpu_read(const Nes& nes, u16 address) -> u8;
   auto cpu_write(Nes& nes, u16 address, u8 value) -> void;
-  auto clock() -> void;
+  auto clock(const Nes& nes) -> void;
+
+  auto set_loopy_reg(u16& reg, u16 data) -> void;
+  auto get_loopy_reg(u16& reg) -> void;
+
+  auto init_renderer() -> void;
 };
 
 } //namespace nes

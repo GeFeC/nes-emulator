@@ -1,12 +1,16 @@
 #include "ppu.hpp"
 #include "nes.hpp"
 #include "colors.hpp"
-#include <iostream>
+#include <cassert>
 
 namespace nes{
 
 Ppu::Ppu(){
   colors = get_colors();
+}
+
+auto Ppu::init_renderer() -> void{
+  renderer.init(ScreenSize);
 }
 
 auto Ppu::mem_read(const Nes& nes, u16 address) const -> u8{
@@ -26,7 +30,7 @@ auto Ppu::mem_read(const Nes& nes, u16 address) const -> u8{
         nametable_index = 1;
       }
     }
-    else if (nes.cardridge.mirroring() == Cardridge::Mirroring::Vertical){
+    else if (nes.cardridge.mirroring() == Cardridge::Mirroring::Horizontal){
       if (
         in_range(address, Ppu::BottomLeftNametableAddressRange) ||
         in_range(address, Ppu::BottomRightNametableAddressRange)
@@ -38,8 +42,10 @@ auto Ppu::mem_read(const Nes& nes, u16 address) const -> u8{
     return nametables[nametable_index][address & 0x03FF];
   }
   else if (in_range(address, Ppu::PalettesAddressRange)){
-    address &= 0x001F; //address %= 32
-    if (address > 16) address -= 16;
+    address &= 0x001F; 
+    if (address >= 0x0010 && (address & 3) == 0){
+      address -= 16;
+    }
 
     return palettes[address];
   }
@@ -62,7 +68,7 @@ auto Ppu::mem_write(Nes& nes, u16 address, u8 value) -> void{
         nametable_index = 1;
       }
     }
-    else if (nes.cardridge.mirroring() == Cardridge::Mirroring::Vertical){
+    else if (nes.cardridge.mirroring() == Cardridge::Mirroring::Horizontal){
       if (
         in_range(address, Ppu::BottomLeftNametableAddressRange) ||
         in_range(address, Ppu::BottomRightNametableAddressRange)
@@ -76,8 +82,10 @@ auto Ppu::mem_write(Nes& nes, u16 address, u8 value) -> void{
   else if (in_range(address, Ppu::PalettesAddressRange)){
     palettes_started_loading = true;
 
-    address &= 0x001F; //address %= 32
-    if (address > 16) address -= 16;
+    address &= 0x001F; 
+    if (address >= 0x0010 && (address & 3) == 0){
+      address -= 16;
+    }
 
     palettes[address] = value;
   }
@@ -85,11 +93,12 @@ auto Ppu::mem_write(Nes& nes, u16 address, u8 value) -> void{
 
 static auto ppu_increment_address(Ppu& ppu){
   const auto increment_mode = ppu.control & Ppu::Control::IncrementMode;
-  ppu.address += increment_mode ? 32 : 1;
+  ppu.vram_address.data += increment_mode ? 32 : 1;
 }
 
 auto Ppu::cpu_read(const Nes& nes, u16 address) -> u8{
   address &= 0x0007;
+
   switch(address){
     case 0x0002:{
       const auto status = (this->status & 0b11100000) | (data_buffer & 0b00011111);
@@ -100,9 +109,9 @@ auto Ppu::cpu_read(const Nes& nes, u16 address) -> u8{
 
     case 0x0007:{
       auto data = data_buffer;
-      data_buffer = mem_read(nes, this->address) | (data_buffer & 0x1F);
+      data_buffer = mem_read(nes, vram_address.data); 
 
-      if (this->address >= Ppu::PalettesAddressRange.first){
+      if (vram_address.data >= Ppu::PalettesAddressRange.first){
         data = data_buffer;
       }
 
@@ -119,52 +128,237 @@ auto Ppu::cpu_write(Nes& nes, u16 address, u8 value) -> void{
   switch(address){
     case 0x0000:
       control = value;
+      tram_address.props.nametable_x = control & Control::NametableX;
+      tram_address.props.nametable_y = control & Control::NametableY;
       break;
 
     case 0x0001:
       mask = value;
       break;
 
+    case 0x0005:
+      if (address_latch == Ppu::AddressLatch::LSB){
+        address_latch = Ppu::AddressLatch::MSB;
+
+        tram_address.props.cell_scroll_y = value & 0x07;
+        tram_address.props.scroll_y = value >> 3;
+
+      }
+      else{
+        address_latch = Ppu::AddressLatch::LSB;
+
+        cell_scroll_x = value & 0x07;
+        tram_address.props.scroll_x = value >> 3;
+      }
+      break;
+
     case 0x0006: {
       if (address_latch == Ppu::AddressLatch::LSB){
-        this->address = (this->address & 0xFF00) | value;
+        tram_address.data = (tram_address.data & 0xFF00) | value;
+        vram_address.data = tram_address.data;
         address_latch = Ppu::AddressLatch::MSB;
       }
       else{
-        this->address = (this->address & 0x00FF) | (value << 8);
+        tram_address.data = (tram_address.data & 0x00FF) | u16((value & 0x3F) << 8);
         address_latch = Ppu::AddressLatch::LSB;
       }
       break;
     }
     case 0x0007:
-      mem_write(nes, this->address, value);
+      mem_write(nes, vram_address.data, value);
       ppu_increment_address(*this);
       break;
   }
 }
 
-auto Ppu::clock() -> void{
+static auto ppu_increment_scroll_x(Ppu& ppu){
+  if (ppu.mask & Ppu::Mask::RenderBackground || ppu.mask & Ppu::Mask::RenderSprites){
+    auto& vram = ppu.vram_address.props;
+    if (vram.scroll_x == 31){
+      vram.scroll_x = 0;
+      vram.nametable_x ^= 1;
+    }
+    else{
+      vram.scroll_x++;
+    }
+  }
+}
+
+static auto ppu_increment_scroll_y(Ppu& ppu){
+  if ((ppu.mask & Ppu::Mask::RenderBackground) || (ppu.mask & Ppu::Mask::RenderSprites)){
+    auto& vram = ppu.vram_address.props;
+    if (vram.cell_scroll_y < 7){
+      vram.cell_scroll_y++;
+      return;
+    }
+
+    vram.cell_scroll_y = 0;
+
+    if (vram.scroll_y == 29){
+      vram.scroll_y = 0;
+      vram.nametable_y ^= 1;
+    }
+    else if (vram.scroll_y == 31){
+      vram.scroll_y = 0;
+    }
+    else{
+      vram.scroll_y++;
+    }
+  }
+}
+
+static auto ppu_transfer_address_x(Ppu& ppu){
+  if (ppu.mask & Ppu::Mask::RenderBackground || ppu.mask & Ppu::Mask::RenderSprites){
+    auto& vram = ppu.vram_address.props;
+    auto& tram = ppu.tram_address.props;
+
+    vram.nametable_x = tram.nametable_x;
+    vram.scroll_x = tram.scroll_x;
+  }
+}
+
+static auto ppu_transfer_address_y(Ppu& ppu){
+  if (ppu.mask & Ppu::Mask::RenderBackground || ppu.mask & Ppu::Mask::RenderSprites){
+    auto& vram = ppu.vram_address.props;
+    auto& tram = ppu.tram_address.props;
+
+    vram.cell_scroll_y = tram.cell_scroll_y;
+    vram.nametable_y = tram.nametable_y;
+    vram.scroll_y = tram.scroll_y;
+  }
+}
+
+static auto ppu_load_shifters(Ppu& ppu){
+  ppu.bg_shifter_pattern_low = (ppu.bg_shifter_pattern_low & 0xFF00) | ppu.bg_next_tile_lsb;
+  ppu.bg_shifter_pattern_high = (ppu.bg_shifter_pattern_high & 0xFF00) | ppu.bg_next_tile_msb;
+
+  ppu.bg_shifter_attribute_low = (ppu.bg_shifter_attribute_low & 0xFF00) | ((ppu.bg_next_tile_attribute & 0b01) ? 0xFF : 0x00);
+  ppu.bg_shifter_attribute_high = (ppu.bg_shifter_attribute_high & 0xFF00) | ((ppu.bg_next_tile_attribute & 0b10) ? 0xFF : 0x00);
+}
+
+static auto ppu_update_shifters(Ppu& ppu){
+  if (ppu.mask & Ppu::Mask::RenderBackground){
+    ppu.bg_shifter_pattern_low <<= 1;
+    ppu.bg_shifter_pattern_high <<= 1;
+    ppu.bg_shifter_attribute_low <<= 1;
+    ppu.bg_shifter_attribute_high <<= 1;
+  }
+}
+
+auto Ppu::clock(const Nes& nes) -> void{
   frame_complete = false;
+
+  if (in_range(scanline, std::make_pair(-1, ScreenSize.y - 1))){
+    if (scanline == -1 && cycles == 1){
+      status &= ~Ppu::Status::VBlank;
+    }
+
+    if (
+      in_range(cycles, std::make_pair(2, 257)) ||
+      in_range(cycles, std::make_pair(321, 337))
+    ){
+      ppu_update_shifters(*this);
+
+      const auto background_pattern = (control & Control::BackgroundPattern) > 0;
+      switch((cycles - 1) % 8){
+        case 0:
+          ppu_load_shifters(*this);
+          bg_next_tile_id = mem_read(nes, 
+            NametablesAddressRange.first |
+            (vram_address.data & 0x0FFF)
+          );
+
+          break;
+        case 2:
+          bg_next_tile_attribute = mem_read(nes, 
+            (NametablesAddressRange.first + 32 * 30)
+            | (vram_address.props.nametable_y << 11)
+            | (vram_address.props.nametable_x << 10)
+            | ((vram_address.props.scroll_y >> 2) << 3)
+            | (vram_address.props.scroll_x >> 2)
+          );
+
+          if (vram_address.props.scroll_y & 0x02) bg_next_tile_attribute >>= 4;
+          if (vram_address.props.scroll_x & 0x02) bg_next_tile_attribute >>= 2;
+          bg_next_tile_attribute &= 0x03;
+
+          break;
+        case 4:
+          bg_next_tile_lsb = mem_read(nes, 
+            (background_pattern << 12) +
+            (u16(bg_next_tile_id) << 4) +
+            vram_address.props.cell_scroll_y
+          );
+          break;
+        case 6:
+          bg_next_tile_msb = mem_read(nes, 
+            (background_pattern << 12) +
+            (u16(bg_next_tile_id) << 4) +
+            vram_address.props.cell_scroll_y + 8
+          );
+          break;
+        case 7:
+          ppu_increment_scroll_x(*this);
+          break;
+      }
+    }
+
+    if (cycles == ScreenSize.x){
+      ppu_increment_scroll_y(*this);
+    }
+
+    if (cycles == ScreenSize.x + 1){
+      ppu_load_shifters(*this);
+      ppu_transfer_address_x(*this);
+    }
+
+    if (scanline == -1 && in_range(cycles, std::make_pair(280, 304))){
+      ppu_transfer_address_y(*this);
+    }
+  }
+
+  if (in_range(scanline, std::make_pair(ScreenSize.y + 1, MaxScanlines - 1))){
+    if (scanline == ScreenSize.y + 1 && cycles == 1){
+      status |= Ppu::Status::VBlank;
+
+      if (control & Control::EnableNmi){
+        nmi = true;
+      }
+    }
+  }
+
+  u8 bg_palette = 0;
+  u8 bg_pixel = 0;
+  if (mask & Mask::RenderBackground){
+    assert(cell_scroll_x < 8);
+    u16 bit_mux = 0x8000 >> cell_scroll_x;
+
+    u8 p0_pixel = (bg_shifter_pattern_low & bit_mux) > 0;
+    u8 p1_pixel = (bg_shifter_pattern_high & bit_mux) > 0;
+    bg_pixel = (p1_pixel << 1) | p0_pixel;
+
+    u8 palette0 = (bg_shifter_attribute_low & bit_mux) > 0;
+    u8 palette1 = (bg_shifter_attribute_high & bit_mux) > 0;
+    bg_palette = (palette1 << 1) | palette0;
+  }
+
+  renderer.set_pixel(
+    gfm::vec2(cycles - 1, scanline), 
+    colors[mem_read(nes, PalettesAddressRange.first + (bg_palette << 2) + bg_pixel) & 0x3F]
+  );
 
   cycles++;
 
   if (cycles > Ppu::CyclesPerScanline){
     cycles = 0;
     scanline++;
-  }
 
-  if (scanline > Ppu::ScreenSize.y && cycles == 0){
-    status |= Ppu::Status::VBlank;
-
-    if (control & Control::EnableNmi){
-      nmi = true;
+    if (scanline > Ppu::MaxScanlines){
+      scanline = -1;
+      frame_complete = true;
     }
   }
 
-  if (scanline > Ppu::MaxScanlines){
-    scanline = -1;
-    frame_complete = true;
-  }
 }
 
 } //namespace nes

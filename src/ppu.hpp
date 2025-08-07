@@ -33,7 +33,7 @@ struct Ppu{
 
   u8 nametables[2][32 * 32];
   u8 palettes[PalettesCount * PaletteSize];
-  std::array<gf::math::vec3, 64> colors;
+  std::array<Renderer::pixel_color, 64> colors;
 
   struct Status{
     enum{

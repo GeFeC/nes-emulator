@@ -16,23 +16,21 @@ namespace nes{
 namespace gfm = gf::math;
 
 struct Renderer{
-  struct Pixel{
-    gfm::vec2 position;
-    gfm::vec3 color;
-  };
-
   enum class ShaderType{
     Vertex = GL_VERTEX_SHADER,
     Fragment = GL_FRAGMENT_SHADER
   };
 
+  using pixel_color = gfm::vec<u8, 3>;
+
   GLuint vertex_shader, fragment_shader;
   GLuint shader_program;
-  GLuint vao, vbo, vbo_instanced;
+  GLuint vao, vbo;
+  GLuint screen_texture;
   bool initialised = false;
 
   gfm::vec2 buffer_size;
-  std::vector<Pixel> pixels;
+  std::vector<pixel_color> pixels;
 
   static auto create_shader(const char* script, Renderer::ShaderType type){
     const auto shader = glCreateShader(static_cast<int>(type));
@@ -58,22 +56,19 @@ struct Renderer{
   Renderer() = default;
 
   auto init(const gfm::vec2& buffer_size){
+    static_assert(sizeof(gfm::vec<u8, 3>) == 3);
+
     this->buffer_size = buffer_size;
     pixels.resize(buffer_size.x * buffer_size.y);
-    for (auto y : gfm::range(buffer_size.y)){
-      for (auto x : gfm::range(buffer_size.x)){
-        pixels[y * buffer_size.x + x].position = gfm::vec2(x, y);
-      }
-    }
     
     //Create VAO
     auto vbo_data = std::array{
-      0.f, 0.f, 
-      1.f, 0.f,
-      1.f, 1.f,
-      0.f, 0.f,
-      0.f, 1.f,
-      1.f, 1.f,
+      0.f, 0.f, 0.f, 0.f,
+      1.f, 0.f, 1.f, 0.f,
+      1.f, 1.f, 1.f, 1.f,
+      0.f, 0.f, 0.f, 0.f,
+      0.f, 1.f, 0.f, 1.f,
+      1.f, 1.f, 1.f, 1.f
     };
 
     glGenVertexArrays(1, &vao);
@@ -88,17 +83,19 @@ struct Renderer{
       vbo_data.data(), GL_STATIC_DRAW
     );
 
-    vao_add_attrib_ptr(0, 2, 0, 2);
+    vao_add_attrib_ptr(0, 2, 0, 4);
+    vao_add_attrib_ptr(1, 2, 2, 4);
 
-    //Instanced array
-    glGenBuffers(1, &vbo_instanced);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo_instanced);
-    
+    glGenTextures(1, &screen_texture);
+    glBindTexture(GL_TEXTURE_2D, screen_texture);
 
-    vao_add_attrib_ptr(1, 2, 0, 5);
-    vao_add_attrib_ptr(2, 3, 2, 5);
-    glVertexAttribDivisor(1, 1);
-    glVertexAttribDivisor(2, 1);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    auto vec = std::vector<u8>(256 * 240 * 3, 255);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 256, 240, 0, GL_RGB, GL_UNSIGNED_BYTE, vec.data());
 
     //Create ShaderProgram
     vertex_shader = create_shader(shaders::vertex_shader_script, Renderer::ShaderType::Vertex);
@@ -126,6 +123,7 @@ struct Renderer{
     glUseProgram(shader_program);
 
     set_uniform("projection", gfm::ortho(0.f, buffer_size.x, 0.f, buffer_size.y, 0.1f, 1000.f));
+    set_uniform("model", gfm::scale(gfm::vec3(buffer_size.x, buffer_size.y, 1.f)));
 
     initialised = true;
   }
@@ -135,7 +133,6 @@ struct Renderer{
 
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
-    glDeleteBuffers(1, &vbo_instanced);
     glDeleteProgram(shader_program);
   }
 
@@ -156,25 +153,20 @@ struct Renderer{
     );
   }
 
-  auto set_pixel(const gfm::vec2& position, const gfm::vec3& color){
+  auto set_pixel(const gfm::vec2& position, const pixel_color& color){
     const auto [x, y] = position;
 
     if (!in_range(x, std::make_pair(0, buffer_size.x - 1))) return;
     if (!in_range(y, std::make_pair(0, buffer_size.y - 1))) return;
 
-    pixels[y * buffer_size.x + x].color = color;
+    auto& pixel = pixels[y * buffer_size.x + x] = color;
   }
 
   auto render(){
-    glBindBuffer(GL_ARRAY_BUFFER, vbo_instanced);
-    glBufferData(
-      GL_ARRAY_BUFFER, 
-      sizeof(Pixel) * pixels.size(),
-      pixels.data(),
-      GL_STATIC_DRAW
-    );
+    glBindTexture(GL_TEXTURE_2D, screen_texture);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 256, 240, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
 
-    glDrawArraysInstanced(GL_TRIANGLES, 0, 6, pixels.size());
+    glDrawArrays(GL_TRIANGLES, 0, 6);
   }
 
 private:

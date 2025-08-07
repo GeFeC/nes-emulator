@@ -13,27 +13,28 @@ auto main() -> int{
   nes::Nes nes;
   nes.load_cardridge("nestest.nes");
   nes.ppu.init_renderer();
-  
+
   window.show();
   auto delta_time = 0.f;
 
   while(!window.should_close()){
     const auto start_frame_time = glfwGetTime();
 
-    if (glfwGetKey(window.window, GLFW_KEY_ENTER)){
-      std::cerr << 1.0 / delta_time << '\n';
+    if (glfwGetKey(window.window, GLFW_KEY_ENTER) == GLFW_PRESS){
+      std::cerr << "FPS: " << 1.0 / delta_time << '\n';
     }
 
     window.clear_buffer();
+
     do{
       nes.clock();
     }while(!nes.frame_complete());
 
     nes.ppu.renderer.render();
-    window.use_vsync();
     window.update_buffer();
 
     delta_time = glfwGetTime() - start_frame_time;
+
   }
 
 }

@@ -15,12 +15,17 @@ struct Nes{
 
   static constexpr auto PpuMemAddressRange = std::make_pair(0x2000, 0x3FFF);
 
+  static constexpr auto Controller1Address = 0x4016;
+
   Cpu cpu;
   Ppu ppu;
   Cardridge cardridge;
   std::array<u8, 1024 * 8> ram;
   
   u32 cycles = 0;
+
+  u8 controllers[2]{};
+  u8 controller_buffers[2]{};
 
   auto load_cardridge(const std::string& filepath){
     cardridge.from_file(filepath);
@@ -44,6 +49,12 @@ struct Nes{
       //Can mutate PPU!!!
       return ppu.cpu_read(*this, address);
     }
+    else if (address == Controller1Address){
+      const auto data = (controller_buffers[0] & 0x80) > 0;
+      controller_buffers[0] <<= 1;
+
+      return data;
+    }
 
     return u8(0);
   }
@@ -64,6 +75,9 @@ struct Nes{
     }
     else if (in_range(address, PpuMemAddressRange)){
       return ppu.cpu_write(*this, address, value);
+    }
+    else if (address == Controller1Address){
+      controller_buffers[0] = controllers[0];
     }
   }
   

@@ -20,6 +20,16 @@ auto main() -> int{
   while(!window.should_close()){
     const auto start_frame_time = glfwGetTime();
 
+    nes.controllers[0] = 0;
+    nes.controllers[0] |= (window.is_key_pressed(GLFW_KEY_Z) << 7);
+    nes.controllers[0] |= (window.is_key_pressed(GLFW_KEY_X) << 6);
+    nes.controllers[0] |= (window.is_key_pressed(GLFW_KEY_SPACE) << 5);
+    nes.controllers[0] |= (window.is_key_pressed(GLFW_KEY_ENTER) << 4);
+    nes.controllers[0] |= (window.is_key_pressed(GLFW_KEY_UP) << 3);
+    nes.controllers[0] |= (window.is_key_pressed(GLFW_KEY_DOWN) << 2);
+    nes.controllers[0] |= (window.is_key_pressed(GLFW_KEY_LEFT) << 1);
+    nes.controllers[0] |= (window.is_key_pressed(GLFW_KEY_RIGHT) << 0);
+
     if (glfwGetKey(window.window, GLFW_KEY_ENTER) == GLFW_PRESS){
       std::cerr << "FPS: " << 1.0 / delta_time << '\n';
     }

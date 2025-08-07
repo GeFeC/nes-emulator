@@ -47,6 +47,10 @@ struct Window{
     return glfwWindowShouldClose(window);
   }
 
+  auto is_key_pressed(int key) const{
+    return glfwGetKey(window, key) == GLFW_PRESS;
+  }
+
   auto clear_buffer(){
     glClearColor(0, 0, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT);

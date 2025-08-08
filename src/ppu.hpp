@@ -27,12 +27,18 @@ struct Ppu{
   static constexpr auto BottomLeftNametableAddressRange = std::make_pair(0x0800, 0x0BFF);
   static constexpr auto BottomRightNametableAddressRange = std::make_pair(0x0C00, 0x0FFF);
 
+  static constexpr auto OAMSize = 64;
+
   static constexpr auto CpuControlPort = 0x0000;
   static constexpr auto CpuMaskPort = 0x0001;
   static constexpr auto CpuStatusPort = 0x0002;
+  static constexpr auto CpuOAMAddressPort = 0x0003;
+  static constexpr auto CpuOAMDataPort = 0x0004;
   static constexpr auto CpuScrollPort = 0x0005;
   static constexpr auto CpuAddressPort = 0x0006;
   static constexpr auto CpuDataPort = 0x0007;
+
+  static constexpr auto MaxSpritesOnScanline = 8;
 
   Renderer renderer;
 
@@ -94,6 +100,21 @@ struct Ppu{
     LoopyRegisterProps props;
     u16 data = 0;
   };
+
+  struct OAMEntry{
+    u8 y;
+    u8 id;
+    u8 attribute;
+    u8 x;
+  } oam[OAMSize]{};
+
+  OAMEntry sprites_on_scanline[MaxSpritesOnScanline]{};
+  u8 scanline_sprites_count = 0;
+
+  u8 oam_address = 0;
+
+  u8 sprite_shifter_pattern_low[MaxSpritesOnScanline];
+  u8 sprite_shifter_pattern_high[MaxSpritesOnScanline];
 
   //Registers:
   u8 control = 0;

@@ -16,6 +16,7 @@ struct Nes{
   static constexpr auto PpuMemAddressRange = std::make_pair(0x2000, 0x3FFF);
 
   static constexpr auto Controller1Address = 0x4016;
+  static constexpr auto DMAAddress = 0x4014;
 
   Cpu cpu;
   Ppu ppu;
@@ -26,6 +27,13 @@ struct Nes{
 
   u8 controllers[2]{};
   u8 controller_buffers[2]{};
+
+  u8 dma_page = 0;
+  u8 dma_address = 0;
+  u8 dma_data = 0;
+
+  bool dma_transfer_started = false;
+  bool dma_dummy_cycle = true;
 
   auto load_cardridge(const std::string& filepath){
     cardridge.from_file(filepath);
@@ -76,6 +84,11 @@ struct Nes{
     else if (in_range(address, PpuMemAddressRange)){
       return ppu.cpu_write(*this, address, value);
     }
+    else if (address == DMAAddress){
+      dma_page = value;
+      dma_address = 0;
+      dma_transfer_started = true;
+    }
     else if (address == Controller1Address){
       controller_buffers[0] = controllers[0];
     }
@@ -93,7 +106,30 @@ struct Nes{
     ppu.clock(*this);
 
     if (cycles % 3 == 0){
-      cpu.clock(*this);
+      if (dma_transfer_started){
+        if (dma_dummy_cycle){
+          if (cycles % 2 == 1){
+            dma_dummy_cycle = false;
+          }
+        } 
+        else{
+          if (cycles % 2 == 0){
+            dma_data = mem_read(dma_page << 8 | dma_address);
+          }
+          else{
+            reinterpret_cast<u8*>(ppu.oam)[dma_address] = dma_data;
+            dma_address++;
+
+            if (dma_address == 0){
+              dma_transfer_started = false;
+              dma_dummy_cycle = true;
+            }
+          }
+        }
+      }
+      else{
+        cpu.clock(*this);
+      }
     }
 
     if (ppu.nmi){

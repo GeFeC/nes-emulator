@@ -32,4 +32,11 @@ inline auto operator""_kb(unsigned long long v){
   return v * 1024;
 }
 
+inline auto flip_byte(u8 b) {
+   b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
+   b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
+   b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
+   return b;
+}
+
 } //namespace nes

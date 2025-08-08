@@ -30,7 +30,7 @@ auto main() -> int{
     nes.controllers[0] |= (window.is_key_pressed(GLFW_KEY_LEFT) << 1);
     nes.controllers[0] |= (window.is_key_pressed(GLFW_KEY_RIGHT) << 0);
 
-    if (glfwGetKey(window.window, GLFW_KEY_ENTER) == GLFW_PRESS){
+    if (glfwGetKey(window.window, GLFW_KEY_TAB) == GLFW_PRESS){
       std::cerr << "FPS: " << 1.0 / delta_time << '\n';
     }
 

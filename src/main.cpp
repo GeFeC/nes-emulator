@@ -4,14 +4,19 @@
 #include "renderer/renderer.hpp"
 #include "nes.hpp"
 
-auto main() -> int{
+auto main(int argc, char** argv) -> int{
+  if (argc < 2){
+    std::cerr << "ROM not selected\n";
+    return 0;
+  }
+
   auto window = nes::Window("Nes emulator", gf::math::vec2(800, 600));
   window.on_resize([](auto, int w, int h){
     glViewport(0, 0, w, h);
   });
 
   nes::Nes nes;
-  nes.load_cardridge("nestest.nes");
+  nes.load_cardridge(argv[1] + std::string(".nes"));
   nes.ppu.init_renderer();
 
   window.show();

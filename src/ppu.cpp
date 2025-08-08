@@ -100,14 +100,14 @@ auto Ppu::cpu_read(const Nes& nes, u16 address) -> u8{
   address &= 0x0007;
 
   switch(address){
-    case 0x0002:{
+    case CpuStatusPort:{
       const auto status = (this->status & 0b11100000) | (data_buffer & 0b00011111);
       this->status &= ~Ppu::Status::VBlank;
       address_latch = Ppu::AddressLatch::MSB;
       return status;
     }
 
-    case 0x0007:{
+    case CpuDataPort:{
       auto data = data_buffer;
       data_buffer = mem_read(nes, vram_address.data); 
 
@@ -126,17 +126,17 @@ auto Ppu::cpu_read(const Nes& nes, u16 address) -> u8{
 auto Ppu::cpu_write(Nes& nes, u16 address, u8 value) -> void{
   address &= 0x0007;
   switch(address){
-    case 0x0000:
+    case CpuControlPort:
       control = value;
       tram_address.props.nametable_x = control & Control::NametableX;
       tram_address.props.nametable_y = control & Control::NametableY;
       break;
 
-    case 0x0001:
+    case CpuMaskPort:
       mask = value;
       break;
 
-    case 0x0005:
+    case CpuScrollPort:
       if (address_latch == Ppu::AddressLatch::LSB){
         address_latch = Ppu::AddressLatch::MSB;
 
@@ -152,7 +152,7 @@ auto Ppu::cpu_write(Nes& nes, u16 address, u8 value) -> void{
       }
       break;
 
-    case 0x0006: {
+    case CpuAddressPort: {
       if (address_latch == Ppu::AddressLatch::LSB){
         tram_address.data = (tram_address.data & 0xFF00) | value;
         vram_address.data = tram_address.data;
@@ -164,7 +164,7 @@ auto Ppu::cpu_write(Nes& nes, u16 address, u8 value) -> void{
       }
       break;
     }
-    case 0x0007:
+    case CpuDataPort:
       mem_write(nes, vram_address.data, value);
       ppu_increment_address(*this);
       break;

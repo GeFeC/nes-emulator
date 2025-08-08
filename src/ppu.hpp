@@ -27,6 +27,13 @@ struct Ppu{
   static constexpr auto BottomLeftNametableAddressRange = std::make_pair(0x0800, 0x0BFF);
   static constexpr auto BottomRightNametableAddressRange = std::make_pair(0x0C00, 0x0FFF);
 
+  static constexpr auto CpuControlPort = 0x0000;
+  static constexpr auto CpuMaskPort = 0x0001;
+  static constexpr auto CpuStatusPort = 0x0002;
+  static constexpr auto CpuScrollPort = 0x0005;
+  static constexpr auto CpuAddressPort = 0x0006;
+  static constexpr auto CpuDataPort = 0x0007;
+
   Renderer renderer;
 
   u8 current_palette = 0;

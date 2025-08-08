@@ -102,34 +102,38 @@ struct Nes{
     return ppu.mem_write(*this, address, value);
   }
 
+  auto cpu_clock(){
+    if (!dma_transfer_started){
+      cpu.clock(*this);
+      return;
+    }
+
+    if (dma_dummy_cycle){
+      if (cycles % 2 == 1){
+        dma_dummy_cycle = false;
+        return;
+      }
+    } 
+
+    if (cycles % 2 == 0){
+      dma_data = mem_read(dma_page << 8 | dma_address);
+    }
+    else{
+      reinterpret_cast<u8*>(ppu.oam)[dma_address] = dma_data;
+      dma_address++;
+
+      if (dma_address == 0){
+        dma_transfer_started = false;
+        dma_dummy_cycle = true;
+      }
+    }
+  }
+
   auto clock(){
     ppu.clock(*this);
 
     if (cycles % 3 == 0){
-      if (dma_transfer_started){
-        if (dma_dummy_cycle){
-          if (cycles % 2 == 1){
-            dma_dummy_cycle = false;
-          }
-        } 
-        else{
-          if (cycles % 2 == 0){
-            dma_data = mem_read(dma_page << 8 | dma_address);
-          }
-          else{
-            reinterpret_cast<u8*>(ppu.oam)[dma_address] = dma_data;
-            dma_address++;
-
-            if (dma_address == 0){
-              dma_transfer_started = false;
-              dma_dummy_cycle = true;
-            }
-          }
-        }
-      }
-      else{
-        cpu.clock(*this);
-      }
+      cpu_clock();      
     }
 
     if (ppu.nmi){

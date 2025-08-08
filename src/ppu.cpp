@@ -380,55 +380,41 @@ auto Ppu::clock(const Nes& nes) -> void{
     if (cycles == 340){
       u16 sprite_pattern_address_low = 0;
 
+      const auto sprite_size_8x8 = (control & Control::SpriteSize) == 0;
+
       for (auto i : gfm::range(scanline_sprites_count)){
-        if ((control & Control::SpriteSize) == 0){
-          const auto sprite_pattern = (control & Control::SpritePattern) > 0;
+        const auto flipped_vertically = (sprites_on_scanline[i].attribute & 0x80) > 0;
+
+        if (sprite_size_8x8){
+          const auto pattern_table = (control & Control::SpritePattern) << 12;
+          const auto pattern_cell = sprites_on_scanline[i].id << 4;
+          const auto row_in_cell = scanline - sprites_on_scanline[i].y;
           //Check if not flipped:
-          if ((sprites_on_scanline[i].attribute & 0x80) == 0){
-            sprite_pattern_address_low = 
-                (sprite_pattern << 12) 
-              | (sprites_on_scanline[i].id << 4)
-              | (scanline - sprites_on_scanline[i].y);
+          sprite_pattern_address_low = pattern_table | pattern_cell;
+
+          if (!flipped_vertically){
+            sprite_pattern_address_low |= row_in_cell;
           }
           else{
-            sprite_pattern_address_low = 
-                (sprite_pattern << 12) 
-              | (sprites_on_scanline[i].id << 4)
-              | (7 - (scanline - sprites_on_scanline[i].y));
+            sprite_pattern_address_low |= (7 - row_in_cell);
           }
         }
         else{
-          if ((sprites_on_scanline[i].attribute & 0x80) == 0){
-            //Top half:
-            if (scanline - sprites_on_scanline[i].y < 8){
-              sprite_pattern_address_low = 
-                  ((sprites_on_scanline[i].id & 0x01) << 12)
-                | (((sprites_on_scanline[i].id & 0xFE)) << 4)
-                | ((scanline - sprites_on_scanline[i].y) & 0x07);
-            }
-            //Bottom half:
-            else{
-              sprite_pattern_address_low = 
-                  ((sprites_on_scanline[i].id & 0x01) << 12)
-                | (((sprites_on_scanline[i].id & 0xFE) + 1) << 4)
-                | ((scanline - sprites_on_scanline[i].y) & 0x07);
-            }
+          const auto top_half = scanline - sprites_on_scanline[i].y < 8;
+          const auto pattern_table = (sprites_on_scanline[i].id & 0x01) << 12;
+          const auto top_half_pattern_cell = ((sprites_on_scanline[i].id & 0xFE)) << 4;
+          const auto bottom_half_pattern_cell = ((sprites_on_scanline[i].id & 0xFE) + 1) << 4;
+          const auto row_in_cell = ((scanline - sprites_on_scanline[i].y) & 0x07);
+
+          sprite_pattern_address_low = pattern_table;
+
+          if (!flipped_vertically){
+            sprite_pattern_address_low |= top_half ? top_half_pattern_cell : bottom_half_pattern_cell;
+            sprite_pattern_address_low |= row_in_cell;
           }
           else{
-            //Top half:
-            if (scanline - sprites_on_scanline[i].y < 8){
-              sprite_pattern_address_low = 
-                  ((sprites_on_scanline[i].id & 0x01) << 12)
-                | (((sprites_on_scanline[i].id & 0xFE) + 1) << 4)
-                | (7 - (scanline - sprites_on_scanline[i].y) & 0x07);
-            }
-            //Bottom half:
-            else{
-              sprite_pattern_address_low = 
-                  ((sprites_on_scanline[i].id & 0x01) << 12)
-                | (((sprites_on_scanline[i].id & 0xFE)) << 4)
-                | (7 - (scanline - sprites_on_scanline[i].y) & 0x07);
-            }
+            sprite_pattern_address_low |= top_half ? bottom_half_pattern_cell : top_half_pattern_cell;
+            sprite_pattern_address_low |= (7 - row_in_cell);
           }
         }
 

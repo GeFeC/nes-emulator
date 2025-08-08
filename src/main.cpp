@@ -5,9 +5,13 @@
 #include "nes.hpp"
 
 auto main(int argc, char** argv) -> int{
+  auto rom_path = std::string();
   if (argc < 2){
-    std::cerr << "ROM not selected\n";
-    return 0;
+    std::cout << "Enter ROM path (without .nes extension): ";
+    std::cin >> rom_path;
+  }
+  else{
+    rom_path = argv[1];
   }
 
   auto window = nes::Window("Nes emulator", gf::math::vec2(800, 600));
@@ -16,7 +20,7 @@ auto main(int argc, char** argv) -> int{
   });
 
   nes::Nes nes;
-  nes.load_cardridge(argv[1] + std::string(".nes"));
+  nes.load_cardridge(rom_path + ".nes");
   nes.ppu.init_renderer();
 
   window.show();

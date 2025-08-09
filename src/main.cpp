@@ -16,7 +16,18 @@ auto main(int argc, char** argv) -> int{
 
   auto window = nes::Window("Nes emulator", gf::math::vec2(800, 600));
   window.on_resize([](auto, int w, int h){
-    glViewport(0, 0, w, h);
+    static constexpr auto NesAspectRatio = nes::Ppu::ScreenSize.x / nes::Ppu::ScreenSize.y;
+    const auto aspect_ratio = float(w) / h;
+    if (aspect_ratio > NesAspectRatio){
+      const auto view_w = h * NesAspectRatio;
+      const auto center_x = w / 2.f - view_w / 2;
+      glViewport(center_x, 0, view_w, h);
+      return;
+    }
+
+    const auto view_h = w * NesAspectRatio;
+    const auto center_y = h / 2.f - view_h / 2;
+    glViewport(0, center_y, w, view_h);
   });
 
   nes::Nes nes;

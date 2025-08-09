@@ -143,6 +143,9 @@ struct Ppu{
   bool frame_complete = false;
   bool palettes_started_loading = false;
 
+  bool sprite0hit_possible = false;
+  bool sprite0_being_rendered = false;
+
   bool nmi = false;
 
   Ppu();

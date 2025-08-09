@@ -277,6 +277,7 @@ auto Ppu::clock(const Nes& nes) -> void{
     if (scanline == -1 && cycles == 1){
       status &= ~Status::VBlank;
       status &= ~Status::SpriteOverflow;
+      status &= ~Status::Sprite0Hit;
 
       for (auto i : gfm::range(MaxSpritesOnScanline)){
         sprite_shifter_pattern_low[i] = 0;
@@ -353,12 +354,17 @@ auto Ppu::clock(const Nes& nes) -> void{
       std::memset(sprites_on_scanline, 0xFF, sizeof(sprites_on_scanline));
       scanline_sprites_count = 0;
 
+      sprite0hit_possible = false;
       for (int i = 0; i < 64 && scanline_sprites_count < 9; ++i){
         const auto y_diff = (scanline - i16(oam[i].y));
 
         const auto sprite_height = (control & Control::SpriteSize) > 0 ? 16 : 8;
         if (in_range(y_diff, std::make_pair(0, sprite_height - 1))){
           if (scanline_sprites_count < 8){
+            if (i == 0){
+              sprite0hit_possible = true;
+            }
+
             sprites_on_scanline[scanline_sprites_count] = oam[i];
           }
           if (scanline_sprites_count < 9){
@@ -465,6 +471,8 @@ auto Ppu::clock(const Nes& nes) -> void{
   u8 fg_priority = 0;
 
   if (mask & Mask::RenderSprites){
+    sprite0_being_rendered = false;
+
     for (auto i : gfm::range(scanline_sprites_count)){
       if (sprites_on_scanline[i].x == 0){
         u8 fg_pixel_low = (sprite_shifter_pattern_low[i] & 0x80) > 0;
@@ -474,7 +482,12 @@ auto Ppu::clock(const Nes& nes) -> void{
         fg_palette = (sprites_on_scanline[i].attribute & 0x03) + 0x04; 
         fg_priority = (sprites_on_scanline[i].attribute & 0x20) == 0;
 
-        if (fg_pixel != 0) break;
+        if (fg_pixel != 0) {
+          if (i == 0){
+            sprite0_being_rendered = true;
+          }
+          break;
+        }
       }
     }
   }
@@ -502,6 +515,22 @@ auto Ppu::clock(const Nes& nes) -> void{
     else{
       pixel = bg_pixel;
       palette = bg_palette;
+    }
+
+    if (
+      sprite0_being_rendered && 
+      sprite0hit_possible && 
+      (mask & Mask::RenderBackground) && 
+      (mask & Mask::RenderSprites)
+    ){
+      auto min_pixel = 1;
+      if (!(mask & Mask::RenderSpritesLeft) && !(mask & Mask::RenderBackgroundLeft)){
+        min_pixel = 9;
+      }
+
+      if (in_range(cycles, std::make_pair(min_pixel, ScreenSize.x + 1))){
+        status |= Status::Sprite0Hit;
+      }
     }
   }
 

@@ -61,7 +61,11 @@ struct Cardridge{
     }
 
     switch(mapper_id()){
-      case 0: mapper = std::make_unique<Mapper000>();
+      case 0: 
+        mapper = std::make_unique<Mapper000>();
+        break;
+      default:
+        throw std::runtime_error("Unsupported mapper: " + std::to_string(mapper_id()));
     }
   }
 

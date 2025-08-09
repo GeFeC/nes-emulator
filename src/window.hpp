@@ -56,8 +56,8 @@ struct Window{
     glClear(GL_COLOR_BUFFER_BIT);
   }
 
-  auto use_vsync(){
-    glfwSwapInterval(1);
+  auto swap_interval(int interval){
+    glfwSwapInterval(interval);
   }
 
   auto update_buffer(){

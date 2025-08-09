@@ -76,6 +76,19 @@ inline auto get_colors(){
 	colors[0x3E] = Renderer::pixel_color(0, 0, 0);
 	colors[0x3F] = Renderer::pixel_color(0, 0, 0);
 
+  for (auto& c : colors){
+    auto increase_brightness = [](auto& x){
+      auto modified = x * 1.2f;
+
+      modified = std::min(modified, 255.f);
+      x = modified;
+    };
+
+    increase_brightness(c.r);
+    increase_brightness(c.g);
+    increase_brightness(c.b);
+  }
+
   return colors;
 }
 

@@ -1,5 +1,7 @@
+#include <chrono>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <thread>
 #include "window.hpp"
 #include "renderer/renderer.hpp"
 #include "nes.hpp"
@@ -61,10 +63,11 @@ auto main(int argc, char** argv) -> int{
     }while(!nes.frame_complete());
 
     nes.ppu.renderer.render();
+    window.swap_interval(0);
     window.update_buffer();
 
     delta_time = glfwGetTime() - start_frame_time;
-
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000 / 60 - int(delta_time * 1000)));
   }
 
 }

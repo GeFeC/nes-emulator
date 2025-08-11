@@ -1,7 +1,7 @@
 # Nes Emulator
 Nintendo Entertainment System emulator implementation in C++ 
 
-![alt text](https://ew.com/thmb/MXdm_2NC883VoKwPNdwYh24aa1k=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/super-mario-bros-7f3c67482caa4f34b39cda5c19efd63d.jpg "Logo Title Text 1")
+![alt text](https://ew.com/thmb/MXdm_2NC883VoKwPNdwYh24aa1k=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/super-mario-bros-7f3c67482caa4f34b39cda5c19efd63d.jpg "Super Mario Bros")
 
 # Progress
 - [x] CPU

@@ -22,6 +22,10 @@ mkdir build
 cd build
 cmake .. -G "<GENERATOR>" -DCMAKE_BUILD_TYPE=Release
 ```
+If you are using GNU Make to build the project:
+```
+make -j4
+```
 # Usage
 ```
 ./nes-emulator rom_name_without_extension

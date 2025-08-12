@@ -30,7 +30,6 @@ set(include_dirs
 
 set(libs 
   glfw
-  freetype
   pthread
 )
 

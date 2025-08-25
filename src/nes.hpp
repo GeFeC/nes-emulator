@@ -43,6 +43,10 @@ struct Nes{
   double audio_time = 0.0;
   double audio_sample = 0.0;
 
+  auto in_apu_range(u16 address) const{
+    return in_range(address, std::make_pair(0x4000, 0x4013)) || address == 0x4015 || address == 0x4017;
+  }
+
   auto load_cardridge(const std::string& filepath){
     cardridge.from_file(filepath);
     cpu.absolute_address = 0xFFFC;
@@ -71,7 +75,7 @@ struct Nes{
 
       return data;
     }
-    else if (in_range(address, std::make_pair(0x4000, 0x4013)) || address == 0x4015 || address == 0x4017){
+    else if (in_apu_range(address)){
       return apu.cpu_read(address);
     }
 
@@ -103,7 +107,7 @@ struct Nes{
     else if (address == Controller1Address){
       controller_buffers[0] = controllers[0];
     }
-    else if (in_range(address, std::make_pair(0x4000, 0x4013)) || address == 0x4015 || address == 0x4017){
+    else if (in_apu_range(address)){
       apu.cpu_write(address, value);
     }
   }

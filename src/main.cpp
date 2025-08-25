@@ -46,7 +46,11 @@ auto main(int argc, char** argv) -> int{
     }
 
     auto& apu = nes.apu;
-    return apu.pulse1.square_wave(time) + apu.pulse2.square_wave(time);
+    const auto pulse_out = 0.00752f * (apu.pulse1.output(time) + apu.pulse2.output(time));
+    const auto noise_out = 0.00494f * apu.noise.output();
+    const auto final_sample = pulse_out + noise_out;
+
+    return std::clamp(final_sample, -1.f, 1.f);
   });
 
   while(!window.should_close()){

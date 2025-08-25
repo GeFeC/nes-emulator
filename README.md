@@ -13,7 +13,9 @@ Nintendo Entertainment System emulator implementation in C++
 - [ ] Audio
     - [x] Pulse1 Channel
     - [x] Pulse2 Channel
-    - [ ] Noise Channel
+    - [x] Noise Channel
+    - [ ] Triangle Channel
+    - [ ] DMC
 - [ ] Mappers
     - [x] Mapper000
 

@@ -62,7 +62,7 @@ struct Cardridge{
 
     switch(mapper_id()){
       case 0: 
-        mapper = std::make_unique<Mapper000>();
+        mapper = std::make_unique<Mapper000>(header.program_rom_chunks);
         break;
       default:
         throw std::runtime_error("Unsupported mapper: " + std::to_string(mapper_id()));
@@ -70,7 +70,7 @@ struct Cardridge{
   }
 
   auto cpu_write(u16 address, u8 value){
-    const auto card_address = mapper->cpu_map(address, header.program_rom_chunks);
+    const auto card_address = mapper->cpu_write(address);
 
     if (card_address != std::nullopt){
       program_memory[card_address.value()] = value;
@@ -81,8 +81,7 @@ struct Cardridge{
   }
 
   auto cpu_read(u16 address) const -> std::optional<u8>{
-    const auto card_address = mapper->cpu_map(address, header.program_rom_chunks);
-
+    const auto card_address = mapper->cpu_read(address);
     if (card_address != std::nullopt){
       return program_memory[card_address.value()];
     }
@@ -91,7 +90,7 @@ struct Cardridge{
   }
 
   auto ppu_write(u16 address, u8 value) -> bool{
-    const auto card_address = mapper->ppu_map(address);
+    const auto card_address = mapper->ppu_write(address);
 
     if (card_address != std::nullopt){
       char_memory[card_address.value()] = value;
@@ -102,7 +101,7 @@ struct Cardridge{
   }
 
   auto ppu_read(u16 address) const -> std::optional<u8>{
-    const auto card_address = mapper->ppu_map(address);
+    const auto card_address = mapper->ppu_read(address);
 
     if (card_address != std::nullopt){
       return char_memory[card_address.value()];

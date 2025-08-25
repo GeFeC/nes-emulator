@@ -6,20 +6,22 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_executable(${PROJECT_NAME} 
-  src/main.cpp
+set(CPP_FILES 
   src/cpu.cpp
   src/ppu.cpp
   vendor/glad.c
   vendor/stb.cpp
+  vendor/miniaudio.cpp
+)
+
+add_executable(${PROJECT_NAME} 
+  src/main.cpp
+  ${CPP_FILES}
 )
 
 add_executable(${PROJECT_NAME}_test
   test/test.cpp
-  src/cpu.cpp
-  src/ppu.cpp
-  vendor/glad.c
-  vendor/stb.cpp
+  ${CPP_FILES}
 )
 
 set(include_dirs

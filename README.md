@@ -11,6 +11,9 @@ Nintendo Entertainment System emulator implementation in C++
     - [x] NES Controller 1
     - [ ] NES Controller 2
 - [ ] Audio
+    - [x] Pulse1 Channel
+    - [x] Pulse2 Channel
+    - [ ] Noise Channel
 - [ ] Mappers
     - [x] Mapper000
 

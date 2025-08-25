@@ -6,10 +6,14 @@
 #include "cardridge.hpp"
 #include "ppu.hpp"
 #include "cpu.hpp"
+#include "apu.hpp"
 
 namespace nes{
 
 struct Nes{
+  static constexpr auto AudioSampleRate = 44100.0;
+  static constexpr auto CyclesPerSec = 5369318.0;
+
   static constexpr auto CpuMemAddressRange = std::make_pair(0x0000, 0x1FFF);
   static constexpr auto CpuMemSize = 0x0800;
 
@@ -20,6 +24,7 @@ struct Nes{
 
   Cpu cpu;
   Ppu ppu;
+  Apu apu = Apu(*this);
   Cardridge cardridge;
   std::array<u8, 1024 * 8> ram;
   
@@ -34,6 +39,9 @@ struct Nes{
 
   bool dma_transfer_started = false;
   bool dma_dummy_cycle = true;
+
+  double audio_time = 0.0;
+  double audio_sample = 0.0;
 
   auto load_cardridge(const std::string& filepath){
     cardridge.from_file(filepath);
@@ -63,6 +71,9 @@ struct Nes{
 
       return data;
     }
+    else if (in_range(address, std::make_pair(0x4000, 0x4013)) || address == 0x4015 || address == 0x4017){
+      return apu.cpu_read(address);
+    }
 
     return u8(0);
   }
@@ -91,6 +102,9 @@ struct Nes{
     }
     else if (address == Controller1Address){
       controller_buffers[0] = controllers[0];
+    }
+    else if (in_range(address, std::make_pair(0x4000, 0x4013)) || address == 0x4015 || address == 0x4017){
+      apu.cpu_write(address, value);
     }
   }
   
@@ -130,6 +144,7 @@ struct Nes{
   }
 
   auto clock(){
+    apu.clock();
     ppu.clock(*this);
 
     if (cycles % 3 == 0){
@@ -141,7 +156,16 @@ struct Nes{
       cpu.nmi(*this);
     }
 
+    auto audio_sample_ready = false;
+    audio_time += 1.0 / CyclesPerSec;
+    if (audio_time >= 1.0 / AudioSampleRate){
+      audio_time -= 1.0 / AudioSampleRate;
+      audio_sample_ready = true;
+    }
+
     cycles++;
+
+    return audio_sample_ready;
   }
 
   auto frame_complete(){

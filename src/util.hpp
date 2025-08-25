@@ -39,4 +39,10 @@ inline auto flip_byte(u8 b) {
    return b;
 }
 
+inline auto fast_sin(float t){
+  auto j = t * 0.15915f;
+  j = j - (int)j;
+  return 20.785 * j * (j - 0.5f) * (j - 1.0f);
+}
+
 } //namespace nes

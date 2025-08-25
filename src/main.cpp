@@ -1,7 +1,6 @@
-#include <chrono>
+#include <miniaudio.h>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <thread>
 #include "window.hpp"
 #include "renderer/renderer.hpp"
 #include "nes.hpp"
@@ -39,6 +38,17 @@ auto main(int argc, char** argv) -> int{
   window.show();
   auto delta_time = 0.f;
 
+  nes.apu.play([](nes::Nes& nes) -> float{
+    static auto time = 0.0;
+
+    while(!nes.clock()){
+      time += 1.0 / nes::Nes::CyclesPerSec;
+    }
+
+    auto& apu = nes.apu;
+    return apu.pulse1.square_wave(time) + apu.pulse2.square_wave(time);
+  });
+
   while(!window.should_close()){
     const auto start_frame_time = glfwGetTime();
 
@@ -58,16 +68,13 @@ auto main(int argc, char** argv) -> int{
 
     window.clear_buffer();
 
-    do{
-      nes.clock();
-    }while(!nes.frame_complete());
+    while(!nes.ppu.frame_complete) {}
 
     nes.ppu.renderer.render();
-    window.swap_interval(0);
+    window.swap_interval(1);
     window.update_buffer();
 
     delta_time = glfwGetTime() - start_frame_time;
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000 / 60 - int(delta_time * 1000)));
   }
 
 }

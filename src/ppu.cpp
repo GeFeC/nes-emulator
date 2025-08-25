@@ -16,7 +16,7 @@ auto Ppu::init_renderer() -> void{
 }
 
 auto Ppu::mem_read(const Nes& nes, u16 address) const -> u8{
-  const auto cardridge_data = nes.cardridge.read_pattern(address);
+  const auto cardridge_data = nes.cardridge.ppu_read(address);
   if (cardridge_data != std::nullopt){
     return cardridge_data.value(); 
   }
@@ -56,7 +56,7 @@ auto Ppu::mem_read(const Nes& nes, u16 address) const -> u8{
 }
 
 auto Ppu::mem_write(Nes& nes, u16 address, u8 value) -> void{
-  if (nes.cardridge.write_pattern(address, value)){
+  if (nes.cardridge.ppu_write(address, value)){
   }
   else if (in_range(address, Ppu::NametablesAddressRange)){
     address &= 0x0FFF;

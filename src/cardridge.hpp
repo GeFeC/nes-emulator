@@ -69,8 +69,8 @@ struct Cardridge{
     }
   }
 
-  auto write_program(u16 address, u8 value){
-    const auto card_address = mapper->program_map(address, header.program_rom_chunks);
+  auto cpu_write(u16 address, u8 value){
+    const auto card_address = mapper->cpu_map(address, header.program_rom_chunks);
 
     if (card_address != std::nullopt){
       program_memory[card_address.value()] = value;
@@ -80,8 +80,8 @@ struct Cardridge{
     return false;
   }
 
-  auto read_program(u16 address) const -> std::optional<u8>{
-    const auto card_address = mapper->program_map(address, header.program_rom_chunks);
+  auto cpu_read(u16 address) const -> std::optional<u8>{
+    const auto card_address = mapper->cpu_map(address, header.program_rom_chunks);
 
     if (card_address != std::nullopt){
       return program_memory[card_address.value()];
@@ -90,8 +90,8 @@ struct Cardridge{
     return std::nullopt;
   }
 
-  auto write_pattern(u16 address, u8 value) -> bool{
-    const auto card_address = mapper->pattern_map(address);
+  auto ppu_write(u16 address, u8 value) -> bool{
+    const auto card_address = mapper->ppu_map(address);
 
     if (card_address != std::nullopt){
       char_memory[card_address.value()] = value;
@@ -101,8 +101,8 @@ struct Cardridge{
     return false;
   }
 
-  auto read_pattern(u16 address) const -> std::optional<u8>{
-    const auto card_address = mapper->pattern_map(address);
+  auto ppu_read(u16 address) const -> std::optional<u8>{
+    const auto card_address = mapper->ppu_map(address);
 
     if (card_address != std::nullopt){
       return char_memory[card_address.value()];

@@ -58,7 +58,7 @@ struct Nes{
   }
 
   auto mem_read(u16 address) -> u8{
-    const auto cardridge_data = cardridge.read_program(address);
+    const auto cardridge_data = cardridge.cpu_read(address);
     if (cardridge_data != std::nullopt){
       return cardridge_data.value();
     }
@@ -90,7 +90,7 @@ struct Nes{
   }
 
   auto mem_write(u16 address, u8 value){
-    if (cardridge.write_program(address, value)){
+    if (cardridge.cpu_write(address, value)){
 
     }
     else if (in_range(address, CpuMemAddressRange)){

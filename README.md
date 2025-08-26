@@ -18,6 +18,7 @@ Nintendo Entertainment System emulator implementation in C++
     - [ ] DMC
 - [ ] Mappers
     - [x] Mapper000
+    - [x] Mapper002
 
 # Generating project
 ```

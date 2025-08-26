@@ -73,6 +73,7 @@ struct AudioPlayer{
   }
 
   ~AudioPlayer(){
+    stop();
     ma_device_uninit(&device);
   }
 };

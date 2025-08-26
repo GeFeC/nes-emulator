@@ -64,6 +64,10 @@ struct Window{
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
+
+  ~Window(){
+    glfwDestroyWindow(window);
+  }
 };
 
 } //namespace nes

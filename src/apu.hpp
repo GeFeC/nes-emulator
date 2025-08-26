@@ -229,7 +229,7 @@ struct NoiseChannel{
 };
 
 struct Apu{
-  Sound<Nes> sound;
+  AudioPlayer<Nes> sound;
   PulseChannel pulse1;
   PulseChannel pulse2;
   NoiseChannel noise;
@@ -351,7 +351,7 @@ struct Apu{
     cycles++;
   }
 
-  auto play(Sound<Nes>::callback_t callback){
+  auto play(AudioPlayer<Nes>::callback_t callback){
     sound.play(callback);
   }
 

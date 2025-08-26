@@ -26,7 +26,7 @@ inline auto square_wave(double step, double frequency, float duty){
 }
 
 template<typename Data>
-struct Sound{
+struct AudioPlayer{
   using callback_t = float(*)(Data&); 
   inline static callback_t current_callback;
   inline static auto cycles = u32(0);
@@ -34,7 +34,7 @@ struct Sound{
   ma_device_config config;
   ma_device device;
 
-  Sound(double sample_rate){
+  AudioPlayer(double sample_rate){
     config = ma_device_config_init(ma_device_type_playback);
 
     config.playback.format = ma_format_f32;
@@ -46,7 +46,7 @@ struct Sound{
       auto& data = *static_cast<Data*>(device->pUserData);
 
       for (ma_uint32 i = 0; i < frame_count; i++) {
-        *out++ = Sound::current_callback(data);
+        *out++ = AudioPlayer::current_callback(data);
         cycles++;
       }
     };
@@ -60,10 +60,10 @@ struct Sound{
     }
   }
 
-  Sound() : Sound(44100.0) {}
+  AudioPlayer() : AudioPlayer(44100.0) {}
 
   auto play(callback_t callback){
-    Sound::current_callback = callback;
+    AudioPlayer::current_callback = callback;
     
     ma_device_start(&device);
   }
@@ -72,7 +72,7 @@ struct Sound{
     ma_device_stop(&device);
   }
 
-  ~Sound(){
+  ~AudioPlayer(){
     ma_device_uninit(&device);
   }
 };

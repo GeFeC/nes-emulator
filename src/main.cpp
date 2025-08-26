@@ -1,6 +1,7 @@
 #include <miniaudio.h>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include "aliases.hpp"
 #include "window.hpp"
 #include "renderer/renderer.hpp"
 #include "nes.hpp"
@@ -43,6 +44,10 @@ auto main(int argc, char** argv) -> int{
 
     while(!nes.clock()){
       time += 1.0 / nes::Nes::CyclesPerSec;
+
+      if (nes.ppu.frame_complete){
+        nes.ppu.renderer.update_pixels();
+      }
     }
 
     auto& apu = nes.apu;
@@ -71,13 +76,9 @@ auto main(int argc, char** argv) -> int{
     }
 
     window.clear_buffer();
-
-    while(!nes.ppu.frame_complete) {}
-
     nes.ppu.renderer.render();
     window.swap_interval(1);
     window.update_buffer();
-
     delta_time = glfwGetTime() - start_frame_time;
   }
 

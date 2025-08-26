@@ -31,6 +31,7 @@ struct Renderer{
 
   gfm::vec2 buffer_size;
   std::vector<pixel_color> pixels;
+  std::vector<pixel_color> pixels_buffer;
 
   static auto create_shader(const char* script, Renderer::ShaderType type){
     const auto shader = glCreateShader(static_cast<int>(type));
@@ -60,6 +61,7 @@ struct Renderer{
 
     this->buffer_size = buffer_size;
     pixels.resize(buffer_size.x * buffer_size.y);
+    pixels_buffer.resize(pixels.size());
     
     //Create VAO
     auto vbo_data = std::array{
@@ -159,7 +161,11 @@ struct Renderer{
     if (!in_range(x, std::make_pair(0, buffer_size.x - 1))) return;
     if (!in_range(y, std::make_pair(0, buffer_size.y - 1))) return;
 
-    auto& pixel = pixels[y * buffer_size.x + x] = color;
+    auto& pixel = pixels_buffer[y * buffer_size.x + x] = color;
+  }
+
+  auto update_pixels(){
+    pixels = pixels_buffer;
   }
 
   auto render(){

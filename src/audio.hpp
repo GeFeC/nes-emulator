@@ -4,6 +4,7 @@
 #include "util.hpp"
 #include <miniaudio.h>
 #include <stdexcept>
+#include <functional>
 
 namespace nes{
 
@@ -26,7 +27,7 @@ inline auto square_wave(double step, double frequency, float duty){
 
 template<typename Data>
 struct Sound{
-  using callback_t = float(*)(Data&);
+  using callback_t = float(*)(Data&); 
   inline static callback_t current_callback;
   inline static auto cycles = u32(0);
 

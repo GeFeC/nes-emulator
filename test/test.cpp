@@ -38,7 +38,7 @@ inline auto test(const std::string& name, u16 cmds, u16 expected, u16 got){
 }
 
 inline auto test_cpu(){
-  Nes nes;
+  Nes nes(Nes::DisableVisualMode);
 
   nes.load_cardridge("nestest.nes");
   auto log_file = file_open_for_reading("nestest.log");

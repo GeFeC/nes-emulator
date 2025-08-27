@@ -40,13 +40,15 @@ struct Ppu{
 
   static constexpr auto MaxSpritesOnScanline = 8;
 
-  Renderer renderer;
+  Texture screen_texture;
+  Texture buffer_texture;
 
   u8 current_palette = 0;
+  bool sprite0hit_occured = false;
 
   u8 nametables[2][32 * 32];
   u8 palettes[PalettesCount * PaletteSize];
-  std::array<Renderer::pixel_color, 64> colors;
+  std::array<Texture::pixel_color, 64> colors;
 
   struct Status{
     enum{
@@ -148,7 +150,7 @@ struct Ppu{
 
   bool nmi = false;
 
-  Ppu();
+  Ppu(bool visual_mode = true);
   auto mem_read(const Nes& nes, u16 address) const -> u8;
   auto mem_write(Nes& nes, u16 address, u8 value) -> void;
   auto cpu_read(const Nes& nes, u16 address) -> u8;
@@ -157,8 +159,6 @@ struct Ppu{
 
   auto set_loopy_reg(u16& reg, u16 data) -> void;
   auto get_loopy_reg(u16& reg) -> void;
-
-  auto init_renderer() -> void;
 };
 
 } //namespace nes

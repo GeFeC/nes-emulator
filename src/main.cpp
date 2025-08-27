@@ -1,10 +1,10 @@
 #include <miniaudio.h>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "aliases.hpp"
 #include "window.hpp"
 #include "renderer/renderer.hpp"
 #include "nes.hpp"
+#include <cassert>
 
 auto main(int argc, char** argv) -> int{
   auto rom_path = std::string();
@@ -34,7 +34,7 @@ auto main(int argc, char** argv) -> int{
 
   nes::Nes nes;
   nes.load_cardridge(rom_path + ".nes");
-  nes.ppu.init_renderer();
+  nes::Renderer renderer(nes::Ppu::ScreenSize);
 
   window.show();
   auto delta_time = 0.f;
@@ -44,10 +44,6 @@ auto main(int argc, char** argv) -> int{
 
     while(!nes.clock()){
       time += 1.0 / nes::Nes::CyclesPerSec;
-
-      if (nes.ppu.frame_complete){
-        nes.ppu.renderer.update_pixels();
-      }
     }
 
     auto& apu = nes.apu;
@@ -76,7 +72,7 @@ auto main(int argc, char** argv) -> int{
     }
 
     window.clear_buffer();
-    nes.ppu.renderer.render();
+    renderer.render_texture(nes.ppu.screen_texture, nes::gfm::vec2(0.f));
     window.swap_interval(1);
     window.update_buffer();
     delta_time = glfwGetTime() - start_frame_time;

@@ -121,7 +121,7 @@ static auto ora(Cpu& cpu, Nes& nes) -> void{
 
 static auto bit(Cpu& cpu, Nes& nes) -> void{
   const u8 value = cpu.fetch(nes);
-  const u8 result = cpu.accumulator  & value;
+  const u8 result = cpu.accumulator & value;
 
   cpu.set_status(Cpu::Status::Zero, result == 0);
   cpu.set_status(Cpu::Status::Overflow, value & (1 << 6));

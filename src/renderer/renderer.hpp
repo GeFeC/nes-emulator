@@ -1,11 +1,12 @@
 #pragma once
 
-#include <glad/glad.h>
+#include "texture.hpp"
 #include "math.hpp"
 #include "vertex_shader.hpp"
 #include "fragment_shader.hpp"
 #include "../util.hpp"
 
+#include <glad/glad.h>
 #include <string>
 #include <stdexcept>
 #include <array>
@@ -21,17 +22,10 @@ struct Renderer{
     Fragment = GL_FRAGMENT_SHADER
   };
 
-  using pixel_color = gfm::vec<u8, 3>;
-
   GLuint vertex_shader, fragment_shader;
   GLuint shader_program;
   GLuint vao, vbo;
-  GLuint screen_texture;
   bool initialised = false;
-
-  gfm::vec2 buffer_size;
-  std::vector<pixel_color> pixels;
-  std::vector<pixel_color> pixels_buffer;
 
   static auto create_shader(const char* script, Renderer::ShaderType type){
     const auto shader = glCreateShader(static_cast<int>(type));
@@ -54,15 +48,7 @@ struct Renderer{
     return 0u;
   }
 
-  Renderer() = default;
-
-  auto init(const gfm::vec2& buffer_size){
-    static_assert(sizeof(gfm::vec<u8, 3>) == 3);
-
-    this->buffer_size = buffer_size;
-    pixels.resize(buffer_size.x * buffer_size.y);
-    pixels_buffer.resize(pixels.size());
-    
+  Renderer(const gfm::vec2& view_size){
     //Create VAO
     auto vbo_data = std::array{
       0.f, 0.f, 0.f, 0.f,
@@ -87,17 +73,6 @@ struct Renderer{
 
     vao_add_attrib_ptr(0, 2, 0, 4);
     vao_add_attrib_ptr(1, 2, 2, 4);
-
-    glGenTextures(1, &screen_texture);
-    glBindTexture(GL_TEXTURE_2D, screen_texture);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-    auto vec = std::vector<u8>(256 * 240 * 3, 255);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 256, 240, 0, GL_RGB, GL_UNSIGNED_BYTE, vec.data());
 
     //Create ShaderProgram
     vertex_shader = create_shader(shaders::vertex_shader_script, Renderer::ShaderType::Vertex);
@@ -124,8 +99,7 @@ struct Renderer{
     glDeleteShader(fragment_shader);
     glUseProgram(shader_program);
 
-    set_uniform("projection", gfm::ortho(0.f, buffer_size.x, 0.f, buffer_size.y, 0.1f, 1000.f));
-    set_uniform("model", gfm::scale(gfm::vec3(buffer_size.x, buffer_size.y, 1.f)));
+    set_uniform("projection", gfm::ortho(0.f, view_size.x, 0.f, view_size.y, 0.1f, 1000.f));
 
     initialised = true;
   }
@@ -155,23 +129,14 @@ struct Renderer{
     );
   }
 
-  auto set_pixel(const gfm::vec2& position, const pixel_color& color){
+  auto render_texture(const Texture& texture, const gfm::vec2& position){
     const auto [x, y] = position;
+    const auto [w, h] = texture.size;
+    const auto model = gfm::scale(gfm::vec3(w, h, 1.f)) * gfm::translation(gfm::vec3(x, y, 0.f));
+    set_uniform("model", model);
 
-    if (!in_range(x, std::make_pair(0, buffer_size.x - 1))) return;
-    if (!in_range(y, std::make_pair(0, buffer_size.y - 1))) return;
-
-    auto& pixel = pixels_buffer[y * buffer_size.x + x] = color;
-  }
-
-  auto update_pixels(){
-    pixels = pixels_buffer;
-  }
-
-  auto render(){
-    glBindTexture(GL_TEXTURE_2D, screen_texture);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 256, 240, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
-
+    glBindTexture(GL_TEXTURE_2D, texture.id);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, texture.pixels.data());
     glDrawArrays(GL_TRIANGLES, 0, 6);
   }
 

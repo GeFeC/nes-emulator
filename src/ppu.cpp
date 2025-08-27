@@ -4,15 +4,13 @@
 #include "util.hpp"
 #include <cassert>
 #include <cstring> //For memset
+#include <ctime>
 
 namespace nes{
 
-Ppu::Ppu(){
+Ppu::Ppu(bool visual_mode) 
+  : screen_texture(ScreenSize, visual_mode), buffer_texture(ScreenSize, visual_mode){
   colors = get_colors();
-}
-
-auto Ppu::init_renderer() -> void{
-  renderer.init(ScreenSize);
 }
 
 auto Ppu::mem_read(const Nes& nes, u16 address) const -> u8{
@@ -103,7 +101,7 @@ auto Ppu::cpu_read(const Nes& nes, u16 address) -> u8{
 
   switch(address){
     case CpuStatusPort:{
-      const auto status = (this->status & 0b11100000) | (data_buffer & 0b00011111);
+      const auto status = (this->status & 0xE0) | (data_buffer & 0x1F);
       this->status &= ~Ppu::Status::VBlank;
       address_latch = Ppu::AddressLatch::MSB;
       return status;
@@ -351,6 +349,11 @@ auto Ppu::clock(const Nes& nes) -> void{
     //Rendering Foreground
 
     if (cycles == 257 && scanline >= 0){
+			for (uint8_t i = 0; i < 8; i++) {
+				sprite_shifter_pattern_low[i] = 0;
+				sprite_shifter_pattern_high[i] = 0;
+			}
+
       std::memset(sprites_on_scanline, 0xFF, sizeof(sprites_on_scanline));
       scanline_sprites_count = 0;
 
@@ -471,22 +474,24 @@ auto Ppu::clock(const Nes& nes) -> void{
   u8 fg_priority = 0;
 
   if (mask & Mask::RenderSprites){
-    sprite0_being_rendered = false;
+    if ((mask & Mask::RenderSpritesLeft) || cycles >= 9){
+      sprite0_being_rendered = false;
 
-    for (auto i : gfm::range(scanline_sprites_count)){
-      if (sprites_on_scanline[i].x == 0){
-        u8 fg_pixel_low = (sprite_shifter_pattern_low[i] & 0x80) > 0;
-        u8 fg_pixel_high = (sprite_shifter_pattern_high[i] & 0x80) > 0;
-        fg_pixel = (fg_pixel_high << 1) | fg_pixel_low;
+      for (auto i : gfm::range(scanline_sprites_count)){
+        if (sprites_on_scanline[i].x == 0){
+          u8 fg_pixel_low = (sprite_shifter_pattern_low[i] & 0x80) > 0;
+          u8 fg_pixel_high = (sprite_shifter_pattern_high[i] & 0x80) > 0;
+          fg_pixel = (fg_pixel_high << 1) | fg_pixel_low;
 
-        fg_palette = (sprites_on_scanline[i].attribute & 0x03) + 0x04; 
-        fg_priority = (sprites_on_scanline[i].attribute & 0x20) == 0;
+          fg_palette = (sprites_on_scanline[i].attribute & 0x03) + 0x04; 
+          fg_priority = (sprites_on_scanline[i].attribute & 0x20) == 0;
 
-        if (fg_pixel != 0) {
-          if (i == 0){
-            sprite0_being_rendered = true;
+          if (fg_pixel != 0){
+            if (i == 0){
+              sprite0_being_rendered = true;
+            }
+            break;
           }
-          break;
         }
       }
     }
@@ -516,10 +521,9 @@ auto Ppu::clock(const Nes& nes) -> void{
       pixel = bg_pixel;
       palette = bg_palette;
     }
-
-    if (
-      sprite0_being_rendered && 
-      sprite0hit_possible && 
+    if(
+      sprite0hit_possible &&
+      sprite0_being_rendered &&
       (mask & Mask::RenderBackground) && 
       (mask & Mask::RenderSprites)
     ){
@@ -534,7 +538,7 @@ auto Ppu::clock(const Nes& nes) -> void{
     }
   }
 
-  renderer.set_pixel(
+  buffer_texture.set_pixel(
     gfm::vec2(cycles - 1, scanline), 
     colors[mem_read(nes, PalettesAddressRange.first + (palette << 2) + pixel) & 0x3F]
   );
@@ -548,6 +552,7 @@ auto Ppu::clock(const Nes& nes) -> void{
     if (scanline > Ppu::MaxScanlines){
       scanline = -1;
       frame_complete = true;
+      screen_texture.pixels = buffer_texture.pixels;
     }
   }
 

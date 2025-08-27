@@ -11,6 +11,8 @@
 namespace nes{
 
 struct Nes{
+  static constexpr auto DisableVisualMode = false;
+
   static constexpr auto AudioSampleRate = 44100.0;
   static constexpr auto CyclesPerSec = 5369318.0;
 
@@ -42,6 +44,8 @@ struct Nes{
 
   double audio_time = 0.0;
   double audio_sample = 0.0;
+
+  Nes(bool visual_mode = true) : ppu(visual_mode) {}
 
   auto in_apu_range(u16 address) const{
     return in_range(address, std::make_pair(0x4000, 0x4013)) || address == 0x4015 || address == 0x4017;

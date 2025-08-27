@@ -395,7 +395,7 @@ auto Ppu::clock(const Nes& nes) -> void{
         const auto flipped_vertically = (sprites_on_scanline[i].attribute & 0x80) > 0;
 
         if (sprite_size_8x8){
-          const auto pattern_table = (control & Control::SpritePattern) << 12;
+          const auto pattern_table = ((control & Control::SpritePattern) > 0) << 12;
           const auto pattern_cell = sprites_on_scanline[i].id << 4;
           const auto row_in_cell = scanline - sprites_on_scanline[i].y;
           //Check if not flipped:

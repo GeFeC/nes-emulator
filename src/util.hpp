@@ -4,6 +4,7 @@
 #include <utility>
 #include <string>
 #include <fstream>
+#include <sstream>
 
 namespace nes{
 
@@ -43,6 +44,12 @@ inline auto fast_sin(float t){
   auto j = t * 0.15915f;
   j = j - (int)j;
   return 20.785 * j * (j - 0.5f) * (j - 1.0f);
+}
+
+inline auto hex_str(u16 value){
+  std::stringstream ss;
+  ss << std::hex << value;
+  return ss.str();
 }
 
 } //namespace nes

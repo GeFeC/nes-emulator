@@ -132,7 +132,7 @@ struct Renderer{
   auto render_texture(const Texture& texture, const gfm::vec2& position){
     const auto [x, y] = position;
     const auto [w, h] = texture.size;
-    const auto model = gfm::scale(gfm::vec3(w, h, 1.f)) * gfm::translation(gfm::vec3(x, y, 0.f));
+    const auto model = gfm::translation(gfm::vec3(x, y, 0.f)) * gfm::scale(gfm::vec3(w, h, 1.f));
     set_uniform("model", model);
 
     glBindTexture(GL_TEXTURE_2D, texture.id);

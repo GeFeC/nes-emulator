@@ -17,11 +17,6 @@ inline auto ichar_equals(char a, char b) {
     std::tolower(static_cast<unsigned char>(b));
 }
 
-inline auto hex_str(u16 value){
-  std::stringstream ss;
-  ss << std::hex << value;
-  return ss.str();
-}
 
 inline auto from_hex_str(const std::string& str){
   std::stringstream ss;

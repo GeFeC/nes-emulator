@@ -29,6 +29,8 @@ struct Nes{
   Apu apu = Apu(*this);
   Cardridge cardridge;
   std::array<u8, 1024 * 8> ram;
+
+  bool paused = false;
   
   u32 cycles = 0;
 

@@ -38,7 +38,6 @@ struct Cpu{
     Indirect,
     XIndirect,
     IndirectY,
-    //Used for illegal instructions:
     None
   };
 

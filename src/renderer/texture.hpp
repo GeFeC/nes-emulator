@@ -307,6 +307,15 @@ struct Texture{
     0,0,0,1,1,0,0,0,
     0,0,0,1,1,0,0,0,
     0,0,0,0,0,0,0,0,
+
+    0,0,0,0,0,0,0,0,
+    0,0,0,1,1,0,0,0,
+    0,1,1,1,1,1,1,0,
+    0,1,1,1,1,1,1,0,
+    0,0,0,1,1,0,0,0,
+    0,1,1,0,0,1,1,0,
+    0,1,1,0,0,1,1,0,
+    0,0,0,0,0,0,0,0,
   };
 
   using pixel_color = gf::math::vec<u8, 3>;
@@ -366,6 +375,9 @@ struct Texture{
       }
       else if (c == ':'){
         sprite_index = 36;
+      }
+      else if (c == '*'){
+        sprite_index = 37;
       }
       else throw std::runtime_error("Unknown character");
 

@@ -9,6 +9,40 @@ struct Debugger{
   static constexpr auto Size = Ppu::ScreenSize;
 
   Texture texture;
+  std::string opcode_names[256] = {
+    /* 00 */ "BRK",   "ORA",   "*KIL",  "*SLO",  "NOP",   "ORA",   "ASL",   "*SLO",
+    /* 08 */ "PHP",   "ORA",   "ASL",   "*ANC",  "NOP",   "ORA",   "ASL",   "*SLO",
+    /* 10 */ "BPL",   "ORA",   "*KIL",  "*SLO",  "NOP",   "ORA",   "ASL",   "*SLO",
+    /* 18 */ "CLC",   "ORA",   "NOP",   "*SLO",  "NOP",   "ORA",   "ASL",   "*SLO",
+    /* 20 */ "JSR",   "AND",   "*KIL",  "*RLA",  "BIT",   "AND",   "ROL",   "*RLA",
+    /* 28 */ "PLP",   "AND",   "ROL",   "*ANC",  "BIT",   "AND",   "ROL",   "*RLA",
+    /* 30 */ "BMI",   "AND",   "*KIL",  "*RLA",  "NOP",   "AND",   "ROL",   "*RLA",
+    /* 38 */ "SEC",   "AND",   "NOP",   "*RLA",  "NOP",   "AND",   "ROL",   "*RLA",
+    /* 40 */ "RTI",   "EOR",   "*KIL",  "*SRE",  "NOP",   "EOR",   "LSR",   "*SRE",
+    /* 48 */ "PHA",   "EOR",   "LSR",   "*ALR",  "JMP",   "EOR",   "LSR",   "*SRE",
+    /* 50 */ "BVC",   "EOR",   "*KIL",  "*SRE",  "NOP",   "EOR",   "LSR",   "*SRE",
+    /* 58 */ "CLI",   "EOR",   "NOP",   "*SRE",  "NOP",   "EOR",   "LSR",   "*SRE",
+    /* 60 */ "RTS",   "ADC",   "*KIL",  "*RRA",  "NOP",   "ADC",   "ROR",   "*RRA",
+    /* 68 */ "PLA",   "ADC",   "ROR",   "*ARR",  "JMP",   "ADC",   "ROR",   "*RRA",
+    /* 70 */ "BVS",   "ADC",   "*KIL",  "*RRA",  "NOP",   "ADC",   "ROR",   "*RRA",
+    /* 78 */ "SEI",   "ADC",   "NOP",   "*RRA",  "NOP",   "ADC",   "ROR",   "*RRA",
+    /* 80 */ "NOP",   "STA",   "NOP",   "*SAX",  "STY",   "STA",   "STX",   "*SAX",
+    /* 88 */ "DEY",   "NOP",   "TXA",   "*XAA",  "STY",   "STA",   "STX",   "*SAX",
+    /* 90 */ "BCC",   "STA",   "*KIL",  "*AHX",  "STY",   "STA",   "STX",   "*SAX",
+    /* 98 */ "TYA",   "STA",   "TXS",   "*TAS",  "*SHY",  "STA",   "*SHX",  "*AHX",
+    /* A0 */ "LDY",   "LDA",   "LDX",   "*LAX",  "LDY",   "LDA",   "LDX",   "*LAX",
+    /* A8 */ "TAY",   "LDA",   "TAX",   "*LAX",  "LDY",   "LDA",   "LDX",   "*LAX",
+    /* B0 */ "BCS",   "LDA",   "*KIL",  "*LAX",  "LDY",   "LDA",   "LDX",   "*LAX",
+    /* B8 */ "CLV",   "LDA",   "TSX",   "*LAS",  "LDY",   "LDA",   "LDX",   "*LAX",
+    /* C0 */ "CPY",   "CMP",   "NOP",   "*DCP",  "CPY",   "CMP",   "DEC",   "*DCP",
+    /* C8 */ "INY",   "CMP",   "DEX",   "*AXS",  "CPY",   "CMP",   "DEC",   "*DCP",
+    /* D0 */ "BNE",   "CMP",   "*KIL",  "*DCP",  "NOP",   "CMP",   "DEC",   "*DCP",
+    /* D8 */ "CLD",   "CMP",   "NOP",   "*DCP",  "NOP",   "CMP",   "DEC",   "*DCP",
+    /* E0 */ "CPX",   "SBC",   "NOP",   "*ISC",  "CPX",   "SBC",   "INC",   "*ISC",
+    /* E8 */ "INX",   "SBC",   "NOP",   "*SBC",  "CPX",   "SBC",   "INC",   "*ISC",
+    /* F0 */ "BEQ",   "SBC",   "*KIL",  "*ISC",  "NOP",   "SBC",   "INC",   "*ISC",
+    /* F8 */ "SED",   "SBC",   "NOP",   "*ISC",  "NOP",   "SBC",   "INC",   "*ISC",
+  };
 
   enum class Page{
     Cpu,
@@ -61,10 +95,33 @@ struct Debugger{
     }
   }
 
-  auto render_cpu_registers(Nes& nes, const gf::math::vec2& position){
-  }
+  auto get_operation_length(Cpu::AddressMode address_mode){
+    using AddressMode = Cpu::AddressMode;
+    switch(address_mode){
+      case AddressMode::Implied:
+      case AddressMode::Accumulator: 
+        return 1;
 
-  auto render_ppu_registers(){
+      case AddressMode::Immediate:
+      case AddressMode::ZeroPage:
+      case AddressMode::ZeroPageX:
+      case AddressMode::ZeroPageY:
+      case AddressMode::Relative:
+      case AddressMode::XIndirect:
+      case AddressMode::IndirectY:
+        return 2;
+
+      case AddressMode::Absolute:
+      case AddressMode::AbsoluteX:
+      case AddressMode::AbsoluteY:
+      case AddressMode::Indirect:
+        return 3;
+
+      case AddressMode::None:
+        return 0;
+    }
+
+    return 0;
   }
 
   auto render_cpu_page(Nes& nes){
@@ -78,6 +135,34 @@ struct Debugger{
     texture.print(registers_pos + gf::math::vec2(0.f, step * 4), "SP:" + hex_str(nes.cpu.sp));
     texture.print(registers_pos + gf::math::vec2(0.f, step * 5), "STATUS:" + hex_str(nes.cpu.status));
     texture.print(registers_pos + gf::math::vec2(0.f, step * 6), "PC:" + hex_str(nes.cpu.pc)); 
+
+    auto code_pos = gf::math::vec2(80.f, 0.f);
+    auto instruction_y = 0;
+
+    auto i = 0;
+    while(instruction_y < 240.f - 24.f){
+      auto opcode = nes.mem_read(nes.cpu.pc + i);
+
+      const auto op_name = opcode_names[opcode];
+      const auto op_size = get_operation_length(nes.cpu.instruction_lookup[opcode].address_mode);
+      i += op_size;
+
+      const auto op_arg = [&]{
+        switch(op_size){
+          case 2:
+            return hex_str(nes.mem_read(nes.cpu.pc + i + 1));
+          case 3:
+            return hex_str(nes.mem_read_u16(nes.cpu.pc + i + 1));
+          default:
+            return std::string("");
+        } 
+      }();
+
+      auto op_str = op_name + "              ";
+      op_str.insert(6, op_arg);
+      texture.print(code_pos + gf::math::vec2(0.f, instruction_y), op_str);
+      instruction_y += 8.f;
+    }
   }
 
   auto render_ppu_page(Nes& nes){

@@ -316,11 +316,30 @@ struct Texture{
     0,1,1,0,0,1,1,0,
     0,1,1,0,0,1,1,0,
     0,0,0,0,0,0,0,0,
+
+    0,0,0,1,1,1,1,0,
+    0,0,1,1,1,1,1,1,
+    0,0,0,0,1,1,1,1,
+    0,0,1,1,1,1,1,0,
+    0,1,1,0,1,1,0,0,
+    0,1,1,0,1,1,1,1,
+    0,0,1,1,1,1,1,0,
+    0,0,0,0,1,1,0,0,
+
+    0,1,1,0,0,1,1,0,
+    1,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,1,
+    0,1,1,0,0,1,1,0,
+    0,1,1,0,0,1,1,0,
+    1,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,1,
+    0,1,1,0,0,1,1,0,
   };
 
   using pixel_color = gf::math::vec<u8, 3>;
 
   std::vector<pixel_color> pixels;
+  pixel_color text_color = pixel_color(255, 255, 255);
   gf::math::vec2 size;
   GLuint id;
 
@@ -379,6 +398,12 @@ struct Texture{
       else if (c == '*'){
         sprite_index = 37;
       }
+      else if (c == '$'){
+        sprite_index = 38;
+      }
+      else if (c == '#'){
+        sprite_index = 39;
+      }
       else throw std::runtime_error("Unknown character");
 
       auto sprite_begin = sprite_index * 8 * 8;
@@ -388,7 +413,7 @@ struct Texture{
 
         const auto pixel_position = position + gf::math::vec2(x + i * 8, y);
         if (pixel_data) {
-          set_pixel(pixel_position, Texture::pixel_color(255, 255, 255));
+          set_pixel(pixel_position, text_color);
         }
         else{
           set_pixel(pixel_position, Texture::pixel_color(0, 0, 0));

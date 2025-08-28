@@ -27,7 +27,7 @@ inline auto square_wave(double step, double frequency, float duty){
 
 template<typename Data>
 struct AudioPlayer{
-  using callback_t = float(*)(Data&); 
+  using callback_t = std::function<float(Data&)>; 
   inline static callback_t current_callback;
   inline static auto cycles = u32(0);
 

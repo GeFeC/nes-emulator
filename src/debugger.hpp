@@ -132,13 +132,17 @@ struct Debugger{
     const auto size = get_instruction_length(address_mode);
 
     auto op_arg = std::string();
+    auto op_str = hex_str(opcode);
+    if (op_str.size() < 2) op_str = "0" + op_str;
 
     switch(size){
       case 2:
         op_arg = hex_str(nes.mem_read(address + 1));
+        while (op_arg.size() < 2) op_arg = "0" + op_arg;
         break;
       case 3:
         op_arg = hex_str(nes.mem_read_u16(address + 1));
+        while (op_arg.size() < 4) op_arg = "0" + op_arg;
         break;
     }
 
@@ -198,7 +202,7 @@ struct Debugger{
 
     texture.print(
       position + gf::math::vec2(160.f, 0.f), 
-      hex_str(opcode) + " " + arg_byte1 + " " + arg_byte2
+      op_str + " " + arg_byte1 + " " + arg_byte2
     );
 
     return size;
@@ -278,8 +282,8 @@ struct Debugger{
   }
 
   auto loop(const Window& window){
-    if (window.is_key_pressed(GLFW_KEY_1)) page = Page::Cpu;
-    if (window.is_key_pressed(GLFW_KEY_2)) page = Page::Ppu;
+    if (window.is_key_down(GLFW_KEY_1)) page = Page::Cpu;
+    if (window.is_key_down(GLFW_KEY_2)) page = Page::Ppu;
   }
 };
 

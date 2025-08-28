@@ -11,6 +11,12 @@ namespace nes{
 namespace gfm = gf::math;
 
 struct Window{
+  struct KeyState{
+    bool released = true;
+  };
+
+  mutable KeyState key_states[512];
+
   GLFWwindow* window;
 
   Window(const std::string& title, const gfm::vec2& size){
@@ -47,8 +53,20 @@ struct Window{
     return glfwWindowShouldClose(window);
   }
 
-  auto is_key_pressed(int key) const{
+  auto is_key_down(int key) const{
     return glfwGetKey(window, key) == GLFW_PRESS;
+  }
+
+  auto is_key_pressed(int key) const{
+    if (is_key_down(key) && key_states[key].released){
+      key_states[key].released = false;
+      return true;
+    }
+    if (!is_key_down(key)){
+      key_states[key].released = true;
+    }
+
+    return false;
   }
 
   auto clear_buffer(){

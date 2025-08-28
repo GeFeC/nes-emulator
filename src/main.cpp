@@ -48,7 +48,7 @@ auto main(int argc, char** argv) -> int{
   window.show();
   auto delta_time = 0.f;
 
-  nes.apu.play([](nes::Nes& nes) -> float{
+  nes.apu.play([&](nes::Nes& nes) -> float{
     static auto time = 0.0;
 
     while(!nes.clock()){

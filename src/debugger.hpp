@@ -95,7 +95,7 @@ struct Debugger{
     }
   }
 
-  auto get_operation_length(Cpu::AddressMode address_mode){
+  auto get_instruction_length(Cpu::AddressMode address_mode){
     using AddressMode = Cpu::AddressMode;
     switch(address_mode){
       case AddressMode::Implied:
@@ -124,45 +124,120 @@ struct Debugger{
     return 0;
   }
 
+  auto render_instruction(Nes& nes, const gf::math::vec2& position, int address){
+    auto opcode = nes.mem_read(address);
+
+    const auto name = opcode_names[opcode];
+    const auto address_mode = nes.cpu.instruction_lookup[opcode].address_mode;
+    const auto size = get_instruction_length(address_mode);
+
+    auto op_arg = std::string();
+
+    switch(size){
+      case 2:
+        op_arg = hex_str(nes.mem_read(address + 1));
+        break;
+      case 3:
+        op_arg = hex_str(nes.mem_read_u16(address + 1));
+        break;
+    }
+
+    auto arg_byte1 = std::string();
+    auto arg_byte2 = std::string();
+    if (op_arg.size() > 0) arg_byte1 = op_arg.substr(0, 2);
+    if (op_arg.size() > 2) arg_byte2 = op_arg.substr(2, 2);
+
+    using AddressMode = Cpu::AddressMode;
+    switch(address_mode){
+      default: 
+        break;
+
+      case AddressMode::Accumulator: 
+        op_arg = "A"; break;
+
+      case AddressMode::Immediate:
+        op_arg = "#$" + op_arg; break;
+
+      case AddressMode::ZeroPageX:
+        op_arg = "$" + op_arg + " X"; break;
+
+      case AddressMode::ZeroPageY:
+        op_arg = "$" + op_arg + " Y"; break;
+
+      case AddressMode::ZeroPage:
+        op_arg = "$" + op_arg; break;
+
+      case AddressMode::Relative:
+        op_arg = "$" + op_arg; break;
+
+      case AddressMode::XIndirect:
+        op_arg = "*$" + op_arg + " X"; break;
+
+      case AddressMode::IndirectY:
+        op_arg = "*$" + op_arg + " Y"; break;
+
+      case AddressMode::Absolute:
+        op_arg = "$" + op_arg; break;
+
+      case AddressMode::AbsoluteX:
+        op_arg = "$" + op_arg + " X"; break;
+        
+      case AddressMode::AbsoluteY:
+        op_arg = "$" + op_arg + " Y"; break;
+
+      case AddressMode::Indirect:
+        op_arg = "*$" + op_arg; break;
+
+      case AddressMode::None:
+        break;
+    }
+
+    auto str = name + "              ";
+    str.insert(5, op_arg);
+    texture.print(position, hex_str(address) + ":" + str);
+
+    texture.print(
+      position + gf::math::vec2(160.f, 0.f), 
+      hex_str(opcode) + " " + arg_byte1 + " " + arg_byte2
+    );
+
+    return size;
+  }
+
   auto render_cpu_page(Nes& nes){
-    auto registers_pos = gf::math::vec2(0.f, 0.f);
-    auto step = 8.f;
-
-    texture.print(registers_pos + gf::math::vec2(0.f, step * 0), "CPU");
-    texture.print(registers_pos + gf::math::vec2(0.f, step * 1), "X:" + hex_str(nes.cpu.x));
-    texture.print(registers_pos + gf::math::vec2(0.f, step * 2), "Y:" + hex_str(nes.cpu.y));
-    texture.print(registers_pos + gf::math::vec2(0.f, step * 3), "A:" + hex_str(nes.cpu.accumulator));
-    texture.print(registers_pos + gf::math::vec2(0.f, step * 4), "SP:" + hex_str(nes.cpu.sp));
-    texture.print(registers_pos + gf::math::vec2(0.f, step * 5), "STATUS:" + hex_str(nes.cpu.status));
-    texture.print(registers_pos + gf::math::vec2(0.f, step * 6), "PC:" + hex_str(nes.cpu.pc)); 
-
-    auto code_pos = gf::math::vec2(80.f, 0.f);
-    auto instruction_y = 0;
+    //Render code:
+    auto code_pos = gf::math::vec2(0.f, 0.f);
+    auto code_height = 80.f;
+    auto instruction_y = 0.f;
 
     auto i = 0;
-    while(instruction_y < 240.f - 24.f){
-      auto opcode = nes.mem_read(nes.cpu.pc + i);
+    texture.text_color = Texture::pixel_color(255, 255, 0);
+    const auto current_pc = nes.cpu.pc;
 
-      const auto op_name = opcode_names[opcode];
-      const auto op_size = get_operation_length(nes.cpu.instruction_lookup[opcode].address_mode);
+    while(instruction_y < code_pos.y + code_height){
+      const auto op_size = render_instruction(
+        nes, 
+        code_pos + gf::math::vec2(0.f, instruction_y), 
+        current_pc + i
+      );
+      
+      instruction_y += 8.f;
       i += op_size;
 
-      const auto op_arg = [&]{
-        switch(op_size){
-          case 2:
-            return hex_str(nes.mem_read(nes.cpu.pc + i + 1));
-          case 3:
-            return hex_str(nes.mem_read_u16(nes.cpu.pc + i + 1));
-          default:
-            return std::string("");
-        } 
-      }();
-
-      auto op_str = op_name + "              ";
-      op_str.insert(6, op_arg);
-      texture.print(code_pos + gf::math::vec2(0.f, instruction_y), op_str);
-      instruction_y += 8.f;
+      texture.text_color = Texture::pixel_color(255, 255, 255);
     }
+
+    auto registers_pos = gf::math::vec2(0.f, code_height + 8.f);
+    auto step = 8.f;
+
+    //Render registers
+    texture.print(registers_pos + gf::math::vec2(0.f, step * 0), "X:" + hex_str(nes.cpu.x));
+    texture.print(registers_pos + gf::math::vec2(0.f, step * 1), "Y:" + hex_str(nes.cpu.y));
+    texture.print(registers_pos + gf::math::vec2(0.f, step * 2), "A:" + hex_str(nes.cpu.accumulator));
+    texture.print(registers_pos + gf::math::vec2(0.f, step * 3), "SP:" + hex_str(nes.cpu.sp));
+    texture.print(registers_pos + gf::math::vec2(0.f, step * 4), "STATUS:" + hex_str(nes.cpu.status));
+    texture.print(registers_pos + gf::math::vec2(0.f, step * 5), "PC:" + hex_str(nes.cpu.pc)); 
+
   }
 
   auto render_ppu_page(Nes& nes){

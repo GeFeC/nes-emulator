@@ -4,6 +4,7 @@
 #include "../aliases.hpp"
 #include "../util.hpp"
 #include <glad/glad.h>
+#include <cstring>
 
 namespace nes{
 
@@ -340,6 +341,10 @@ struct Texture{
     if (!in_range(y, std::make_pair(0, size.y - 1))) return;
 
     pixels[y * size.x + x] = color;
+  }
+
+  auto clear(){
+    std::memset(pixels.data(), 0, pixels.size() * sizeof(pixels[0]));
   }
 
   auto print(const gf::math::vec2& position, const std::string& text){

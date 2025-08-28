@@ -133,16 +133,13 @@ struct Debugger{
 
     auto op_arg = std::string();
     auto op_str = hex_str(opcode);
-    if (op_str.size() < 2) op_str = "0" + op_str;
 
     switch(size){
       case 2:
         op_arg = hex_str(nes.mem_read(address + 1));
-        while (op_arg.size() < 2) op_arg = "0" + op_arg;
         break;
       case 3:
         op_arg = hex_str(nes.mem_read_u16(address + 1));
-        while (op_arg.size() < 4) op_arg = "0" + op_arg;
         break;
     }
 
@@ -198,7 +195,7 @@ struct Debugger{
 
     auto str = name + "              ";
     str.insert(5, op_arg);
-    texture.print(position, hex_str(address) + ":" + str);
+    texture.print(position, hex_str(u16(address)) + ":" + str);
 
     texture.print(
       position + gf::math::vec2(160.f, 0.f), 
@@ -236,7 +233,7 @@ struct Debugger{
 
     //Render registers
     texture.print(registers_pos + gf::math::vec2(0.f, step * 0), "X:" + hex_str(nes.cpu.x));
-    texture.print(registers_pos + gf::math::vec2(0.f, step * 1), "Y:" + hex_str(nes.cpu.y));
+    texture.print(registers_pos + gf::math::vec2(40.f, step * 0), "Y:" + hex_str(nes.cpu.y));
     texture.print(registers_pos + gf::math::vec2(0.f, step * 2), "A:" + hex_str(nes.cpu.accumulator));
     texture.print(registers_pos + gf::math::vec2(0.f, step * 3), "SP:" + hex_str(nes.cpu.sp));
     texture.print(registers_pos + gf::math::vec2(0.f, step * 4), "STATUS:" + hex_str(nes.cpu.status));

@@ -46,10 +46,22 @@ inline auto fast_sin(float t){
   return 20.785 * j * (j - 0.5f) * (j - 1.0f);
 }
 
-inline auto hex_str(u16 value){
+inline auto hex_str_common(u16 value){
   std::stringstream ss;
   ss << std::hex << value;
   return ss.str();
+}
+
+inline auto hex_str(u8 value){
+  auto str = hex_str_common(value);
+  if (str.size() < 2) str = "0" + str;
+  return str;
+}
+
+inline auto hex_str(u16 value){
+  auto str = hex_str_common(value);
+  while (str.size() < 4) str = "0" + str;
+  return str;
 }
 
 } //namespace nes

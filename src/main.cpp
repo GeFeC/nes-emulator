@@ -4,7 +4,7 @@
 #include "window.hpp"
 #include "renderer/renderer.hpp"
 #include "nes.hpp"
-#include "debug_view.hpp"
+#include "debugger.hpp"
 #include <cassert>
 
 static constexpr auto Viewport = gf::math::vec2(
@@ -43,7 +43,7 @@ auto main(int argc, char** argv) -> int{
   nes::Nes nes;
   nes.load_cardridge(rom_path + ".nes");
   nes::Renderer renderer(Viewport);
-  nes::DebugView debug_view;
+  nes::Debugger debugger;
 
   window.show();
   auto delta_time = 0.f;
@@ -82,9 +82,9 @@ auto main(int argc, char** argv) -> int{
 
     window.clear_buffer();
 
-    debug_view.render(nes);
+    debugger.render(nes);
     renderer.render_texture(nes.ppu.screen_texture, nes::gfm::vec2(0.f));
-    renderer.render_texture(debug_view.texture, nes::gfm::vec2(nes::Ppu::ScreenSize.x, 0.f));
+    renderer.render_texture(debugger.texture, nes::gfm::vec2(nes::Ppu::ScreenSize.x, 0.f));
 
     window.swap_interval(1);
     window.update_buffer();

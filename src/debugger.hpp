@@ -4,12 +4,12 @@
 
 namespace nes{
 
-struct DebugView{
+struct Debugger{
   static constexpr auto Size = Ppu::ScreenSize;
 
   Texture texture;
 
-  DebugView() : texture(gf::math::vec2(Size)) {}
+  Debugger() : texture(gf::math::vec2(Size)) {}
 
   auto render_pattern_table(Nes& nes, int index, const gf::math::vec2& position){
     for (auto [x, y] : gf::math::range({ 16, 16 })){

@@ -49,6 +49,8 @@ struct Debugger{
     Ppu
   } page = Page::Cpu;
 
+  u16 nmi_pc = 0x0;
+
   Debugger() : texture(gf::math::vec2(Size)) {}
 
   auto render_pattern_table(Nes& nes, int index, const gf::math::vec2& position){
@@ -198,9 +200,13 @@ struct Debugger{
     texture.print(position, hex_str(u16(address)) + ":" + str);
 
     texture.print(
-      position + gf::math::vec2(160.f, 0.f), 
+      position + gf::math::vec2(144.f, 0.f), 
       op_str + " " + arg_byte1 + " " + arg_byte2
     );
+
+    if (address == nmi_pc){
+      texture.print(position + gf::math::vec2(256.f - 4 * 8.f, 0.f), "NMI");
+    }
 
     return size;
   }
@@ -236,6 +242,8 @@ struct Debugger{
     texture.print(registers_pos + gf::math::vec2(80.f, 0), "A:" + hex_str(nes.cpu.accumulator));
     texture.print(registers_pos + gf::math::vec2(120.f, 0), "SP:" + hex_str(nes.cpu.sp));
     texture.print(registers_pos + gf::math::vec2(168.f, 0), "STATUS:" + hex_str(nes.cpu.status));
+
+
   }
 
   auto render_ppu_page(Nes& nes){
@@ -275,9 +283,10 @@ struct Debugger{
     texture.print(gf::math::vec2(0.f, 240.f - 8.f), "CYCLES:" + std::to_string(nes.cycles));
   }
 
-  auto loop(const Window& window){
+  auto loop(const Window& window, const Nes& nes){
     if (window.is_key_down(GLFW_KEY_1)) page = Page::Cpu;
     if (window.is_key_down(GLFW_KEY_2)) page = Page::Ppu;
+    nmi_pc = nes.nmi_pc;
   }
 };
 

@@ -47,6 +47,8 @@ struct Nes{
   double audio_time = 0.0;
   double audio_sample = 0.0;
 
+  u16 nmi_pc = 0x0;
+
   Nes(bool visual_mode = true) : ppu(visual_mode) {}
 
   auto in_apu_range(u16 address) const{
@@ -162,6 +164,7 @@ struct Nes{
     }
 
     if (ppu.nmi){
+      nmi_pc = cpu.pc;
       ppu.nmi = false;
       cpu.nmi(*this);
     }

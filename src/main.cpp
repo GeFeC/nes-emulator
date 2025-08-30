@@ -53,6 +53,8 @@ auto main(int argc, char** argv) -> int{
 
     if (nes.paused) return 0.f;
     while(!nes.clock()){
+      debugger.loop(window, nes);
+
       if (nes.paused) return 0.f;
       time += 1.0 / nes::Nes::CyclesPerSec;
     }
@@ -88,7 +90,6 @@ auto main(int argc, char** argv) -> int{
 
     window.clear_buffer();
 
-    debugger.loop(window);
     debugger.render(nes);
     renderer.render_texture(nes.ppu.screen_texture, nes::gfm::vec2(0.f));
     renderer.render_texture(debugger.texture, nes::gfm::vec2(nes::Ppu::ScreenSize.x, 0.f));

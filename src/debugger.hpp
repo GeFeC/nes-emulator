@@ -207,8 +207,8 @@ struct Debugger{
 
   auto render_cpu_page(Nes& nes){
     //Render code:
-    auto code_pos = gf::math::vec2(0.f, 0.f);
-    auto code_height = 80.f;
+    const auto code_pos = gf::math::vec2(0.f, 0.f);
+    auto code_height = 160.f;
     auto instruction_y = 0.f;
 
     auto i = 0;
@@ -228,17 +228,14 @@ struct Debugger{
       texture.text_color = Texture::pixel_color(255, 255, 255);
     }
 
-    auto registers_pos = gf::math::vec2(0.f, code_height + 8.f);
-    auto step = 8.f;
+    const auto registers_pos = gf::math::vec2(0.f, code_height + 8.f);
 
-    //Render registers
-    texture.print(registers_pos + gf::math::vec2(0.f, step * 0), "X:" + hex_str(nes.cpu.x));
-    texture.print(registers_pos + gf::math::vec2(40.f, step * 0), "Y:" + hex_str(nes.cpu.y));
-    texture.print(registers_pos + gf::math::vec2(0.f, step * 2), "A:" + hex_str(nes.cpu.accumulator));
-    texture.print(registers_pos + gf::math::vec2(0.f, step * 3), "SP:" + hex_str(nes.cpu.sp));
-    texture.print(registers_pos + gf::math::vec2(0.f, step * 4), "STATUS:" + hex_str(nes.cpu.status));
-    texture.print(registers_pos + gf::math::vec2(0.f, step * 5), "PC:" + hex_str(nes.cpu.pc)); 
-
+    //Render registers:
+    texture.print(registers_pos + gf::math::vec2(0.f, 0), "X:" + hex_str(nes.cpu.x));
+    texture.print(registers_pos + gf::math::vec2(40.f, 0), "Y:" + hex_str(nes.cpu.y));
+    texture.print(registers_pos + gf::math::vec2(80.f, 0), "A:" + hex_str(nes.cpu.accumulator));
+    texture.print(registers_pos + gf::math::vec2(120.f, 0), "SP:" + hex_str(nes.cpu.sp));
+    texture.print(registers_pos + gf::math::vec2(168.f, 0), "STATUS:" + hex_str(nes.cpu.status));
   }
 
   auto render_ppu_page(Nes& nes){

@@ -1,20 +1,16 @@
 #pragma once
 
 #include "texture.hpp"
-#include "math.hpp"
 #include "vertex_shader.hpp"
 #include "fragment_shader.hpp"
-#include "../util.hpp"
+#include "../math.hpp"
 
 #include <glad/glad.h>
 #include <string>
 #include <stdexcept>
 #include <array>
-#include <iostream>
 
 namespace nes{
-
-namespace gfm = gf::math;
 
 struct Renderer{
   enum class ShaderType{
@@ -48,7 +44,7 @@ struct Renderer{
     return 0u;
   }
 
-  Renderer(const gfm::vec2& view_size){
+  Renderer(const vec2& view_size){
     //Create VAO
     auto vbo_data = std::array{
       0.f, 0.f, 0.f, 0.f,
@@ -99,7 +95,7 @@ struct Renderer{
     glDeleteShader(fragment_shader);
     glUseProgram(shader_program);
 
-    set_uniform("projection", gfm::ortho(0.f, view_size.x, 0.f, view_size.y, 0.1f, 1000.f));
+    set_uniform("projection", ortho(0.f, view_size.x, 0.f, view_size.y, 0.1f, 1000.f));
 
     initialised = true;
   }
@@ -112,7 +108,7 @@ struct Renderer{
     glDeleteProgram(shader_program);
   }
 
-  auto set_uniform(const std::string& name, const gfm::mat4& matrix) -> void{
+  auto set_uniform(const std::string& name, const mat4& matrix) -> void{
     glUniformMatrix4fv(
       glGetUniformLocation(shader_program, name.c_str()), 
       1, 
@@ -121,7 +117,7 @@ struct Renderer{
     );
   }
 
-  auto set_uniform(const std::string& name, const gfm::vec4& vec) -> void{
+  auto set_uniform(const std::string& name, const vec4& vec) -> void{
     glUniform4fv(
       glGetUniformLocation(shader_program, name.c_str()), 
       1, 
@@ -129,10 +125,10 @@ struct Renderer{
     );
   }
 
-  auto render_texture(const Texture& texture, const gfm::vec2& position){
+  auto render_texture(const Texture& texture, const vec2& position){
     const auto [x, y] = position;
     const auto [w, h] = texture.size;
-    const auto model = gfm::translation(gfm::vec3(x, y, 0.f)) * gfm::scale(gfm::vec3(w, h, 1.f));
+    const auto model = translation(vec3(x, y, 0.f)) * scale(vec3(w, h, 1.f));
     set_uniform("model", model);
 
     glBindTexture(GL_TEXTURE_2D, texture.id);

@@ -1,10 +1,8 @@
-#include <miniaudio.h>
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
 #include "window.hpp"
 #include "renderer/renderer.hpp"
 #include "nes.hpp"
 #include "debugger.hpp"
+
 #include <cassert>
 
 static constexpr auto Viewport = gf::math::vec2(
@@ -22,8 +20,7 @@ auto main(int argc, char** argv) -> int{
     rom_path = argv[1];
   }
 
-
-  auto window = nes::Window("Nes emulator", gf::math::vec2(800, 600));
+  auto window = nes::Window("Nes emulator", nes::vec2(800, 600));
   window.on_resize([](auto, int w, int h){
     const auto aspect_ratio = Viewport.x / Viewport.y;
     const auto window_aspect_ratio = float(w) / h;
@@ -91,8 +88,8 @@ auto main(int argc, char** argv) -> int{
     window.clear_buffer();
 
     debugger.render(nes);
-    renderer.render_texture(nes.ppu.screen_texture, nes::gfm::vec2(0.f));
-    renderer.render_texture(debugger.texture, nes::gfm::vec2(nes::Ppu::ScreenSize.x, 0.f));
+    renderer.render_texture(nes.ppu.screen_texture, nes::vec2(0.f));
+    renderer.render_texture(debugger.texture, nes::vec2(nes::Ppu::ScreenSize.x, 0.f));
 
     window.swap_interval(1);
     window.update_buffer();

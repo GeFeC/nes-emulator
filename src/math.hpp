@@ -27,7 +27,7 @@ using not_arithmetic = std::enable_if_t<!std::is_arithmetic_v<T>>;
 
 } //namespace detail
 
-inline constexpr auto pi = 3.141592653589793238462643;
+inline constexpr auto Pi = 3.141592653589793238462643;
 
 template<typename T>
 struct range_base{

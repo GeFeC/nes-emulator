@@ -1,6 +1,5 @@
 #pragma once
 
-#include "math.hpp"
 #include "../aliases.hpp"
 #include "../util.hpp"
 #include <glad/glad.h>
@@ -336,17 +335,17 @@ struct Texture{
     0,1,1,0,0,1,1,0,
   };
 
-  using pixel_color = gf::math::vec<u8, 3>;
+  using pixel_color = vec<u8, 3>;
 
   std::vector<pixel_color> pixels;
   pixel_color text_color = pixel_color(255, 255, 255);
-  gf::math::vec2 size;
+  vec2 size;
   GLuint id;
 
-  Texture(const gf::math::vec2& size, bool visual_mode = true){
+  Texture(const vec2& size, bool visual_mode = true){
     if (!visual_mode) return;
 
-    static_assert(sizeof(gf::math::vec<u8, 3>) == 3);
+    static_assert(sizeof(vec<u8, 3>) == 3);
 
     this->size = size;
     pixels.resize(size.x * size.y);
@@ -362,7 +361,7 @@ struct Texture{
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, size.x, size.y, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
   }
 
-  auto set_pixel(const gf::math::vec2& position, const pixel_color& color){
+  auto set_pixel(const vec2& position, const pixel_color& color){
     const auto [x, y] = position;
 
     if (!in_range(x, std::make_pair(0, size.x - 1))) return;
@@ -375,7 +374,7 @@ struct Texture{
     std::memset(pixels.data(), 0, pixels.size() * sizeof(pixels[0]));
   }
 
-  auto print(const gf::math::vec2& position, const std::string& text){
+  auto print(const vec2& position, const std::string& text){
     auto i = 0;
     for (auto c : text){
       auto sprite_index = 0; 
@@ -408,10 +407,10 @@ struct Texture{
 
       auto sprite_begin = sprite_index * 8 * 8;
 
-      for (auto [x, y] : gf::math::range({ 8, 8 })){
+      for (auto [x, y] : range({ 8, 8 })){
         const auto pixel_data = charset[sprite_begin + y * 8 + 7 - x];
 
-        const auto pixel_position = position + gf::math::vec2(x + i * 8, y);
+        const auto pixel_position = position + vec2(x + i * 8, y);
         if (pixel_data) {
           set_pixel(pixel_position, text_color);
         }

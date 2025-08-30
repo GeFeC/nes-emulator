@@ -1,5 +1,5 @@
 #pragma once
-#include "renderer/math.hpp"
+
 #include "aliases.hpp"
 #include "util.hpp"
 #include <miniaudio.h>
@@ -9,17 +9,15 @@
 namespace nes{
 
 inline auto square_wave(double step, double frequency, float duty){
-  namespace m = gf::math;
-  
   static constexpr auto Harmonics = 20;
   auto y1 = 0.f;
-  for (auto i : m::range(1, Harmonics)){
-    y1 += fast_sin(step * frequency * m::pi * 2 * i) / i;
+  for (auto i : range(1, Harmonics)){
+    y1 += fast_sin(step * frequency * Pi * 2 * i) / i;
   }
 
   auto y2 = 0.f;
-  for (auto i : m::range(1, Harmonics)){
-    y2 += fast_sin((step * frequency - duty) * m::pi * 2 * i) / i;
+  for (auto i : range(1, Harmonics)){
+    y2 += fast_sin((step * frequency - duty) * Pi * 2 * i) / i;
   }
 
   return 0.5f * (y1 - y2);

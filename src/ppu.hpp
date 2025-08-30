@@ -1,7 +1,6 @@
 #pragma once
 
 #include "aliases.hpp"
-#include "renderer/math.hpp"
 #include "renderer/renderer.hpp"
 #include <array>
 
@@ -10,7 +9,7 @@ namespace nes{
 struct Nes;
 
 struct Ppu{
-  static constexpr auto ScreenSize = gf::math::vec2(256, 240);
+  static constexpr auto ScreenSize = vec2(256, 240);
   static constexpr auto CyclesPerScanline = 341;
   static constexpr auto MaxScanlines = 261;
 

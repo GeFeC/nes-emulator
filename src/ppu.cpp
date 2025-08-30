@@ -256,7 +256,7 @@ static auto ppu_update_shifters(Ppu& ppu){
   }
 
   if ((ppu.mask & Ppu::Mask::RenderSprites) && in_range(ppu.cycles, std::make_pair(1, Ppu::ScreenSize.x + 1))){
-    for (auto i : gfm::range(ppu.scanline_sprites_count)){
+    for (auto i : range(ppu.scanline_sprites_count)){
       if (ppu.sprites_on_scanline[i].x > 0){
         ppu.sprites_on_scanline[i].x--;
       }
@@ -277,7 +277,7 @@ auto Ppu::clock(const Nes& nes) -> void{
       status &= ~Status::SpriteOverflow;
       status &= ~Status::Sprite0Hit;
 
-      for (auto i : gfm::range(MaxSpritesOnScanline)){
+      for (auto i : range(MaxSpritesOnScanline)){
         sprite_shifter_pattern_low[i] = 0;
         sprite_shifter_pattern_high[i] = 0;
       }
@@ -391,7 +391,7 @@ auto Ppu::clock(const Nes& nes) -> void{
 
       const auto sprite_size_8x8 = (control & Control::SpriteSize) == 0;
 
-      for (auto i : gfm::range(scanline_sprites_count)){
+      for (auto i : range(scanline_sprites_count)){
         const auto flipped_vertically = (sprites_on_scanline[i].attribute & 0x80) > 0;
 
         if (sprite_size_8x8){
@@ -477,7 +477,7 @@ auto Ppu::clock(const Nes& nes) -> void{
     if ((mask & Mask::RenderSpritesLeft) || cycles >= 9){
       sprite0_being_rendered = false;
 
-      for (auto i : gfm::range(scanline_sprites_count)){
+      for (auto i : range(scanline_sprites_count)){
         if (sprites_on_scanline[i].x == 0){
           u8 fg_pixel_low = (sprite_shifter_pattern_low[i] & 0x80) > 0;
           u8 fg_pixel_high = (sprite_shifter_pattern_high[i] & 0x80) > 0;
@@ -539,7 +539,7 @@ auto Ppu::clock(const Nes& nes) -> void{
   }
 
   buffer_texture.set_pixel(
-    gfm::vec2(cycles - 1, scanline), 
+    vec2(cycles - 1, scanline), 
     colors[mem_read(nes, PalettesAddressRange.first + (palette << 2) + pixel) & 0x3F]
   );
 

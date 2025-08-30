@@ -1,14 +1,12 @@
 #pragma once
 
-#include "renderer/math.hpp"
 #include <stdexcept>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <string>
+#include "aliases.hpp"
 
 namespace nes{
-
-namespace gfm = gf::math;
 
 struct Window{
   struct KeyState{
@@ -19,7 +17,7 @@ struct Window{
 
   GLFWwindow* window;
 
-  Window(const std::string& title, const gfm::vec2& size){
+  Window(const std::string& title, const vec2& size){
     if (!glfwInit()){
       throw std::runtime_error("Unable to initialise GLFW");
     }

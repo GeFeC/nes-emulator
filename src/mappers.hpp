@@ -15,13 +15,13 @@ struct Mapper{
 };
 
 struct Mapper000 : Mapper{
-  u8 program_chunks;
+  u8 program_banks;
 
-  Mapper000(u8 program_chunks) : program_chunks(program_chunks) {}
+  Mapper000(u8 program_banks) : program_banks(program_banks) {}
 
   auto cpu_read(u16 address) -> return_t override{
     if (in_range(address, { 0x8000, 0xFFFF })){
-      return address & (program_chunks > 1 ? 0x7FFF : 0x3FFF);
+      return address & (program_banks > 1 ? 0x7FFF : 0x3FFF);
     }
 
     return std::nullopt;
@@ -48,11 +48,11 @@ struct Mapper000 : Mapper{
 
 struct Mapper002 : Mapper{
   u8 selected_program_bank = 0;
-  u8 program_chunks;
-  u8 char_chunks;
+  u8 program_banks;
+  u8 char_banks;
 
-  Mapper002(u8 program_chunks, u8 char_chunks) 
-  : program_chunks(program_chunks), char_chunks(char_chunks) {
+  Mapper002(u8 program_banks, u8 char_banks) 
+  : program_banks(program_banks), char_banks(char_banks) {
   }
 
   auto cpu_read(u16 address) -> return_t override{
@@ -60,7 +60,7 @@ struct Mapper002 : Mapper{
       return selected_program_bank * 16_kb + (address - 0x8000);
     }
     if (in_range(address, { 0xC000, 0xFFFF })){
-      return (program_chunks - 1) * 16_kb + (address - 0xC000);
+      return (program_banks - 1) * 16_kb + (address - 0xC000);
     }
 
     return std::nullopt;
@@ -83,7 +83,7 @@ struct Mapper002 : Mapper{
 
   auto ppu_write(u16 address, u8 data) -> return_t override{
     if (in_range(address, { 0x0000, 0x1fff })){
-      if (char_chunks == 0){
+      if (char_banks == 0){
         return (address);
       }
     }
@@ -94,16 +94,16 @@ struct Mapper002 : Mapper{
 
 struct Mapper003 : Mapper{
   u8 selected_char_bank = 0;
-  u8 program_chunks;
-  u8 char_chunks;
+  u8 program_banks;
+  u8 char_banks;
 
-  Mapper003(u8 program_chunks, u8 char_chunks) 
-  : program_chunks(program_chunks), char_chunks(char_chunks) {
+  Mapper003(u8 program_banks, u8 char_banks) 
+  : program_banks(program_banks), char_banks(char_banks) {
   }
 
   auto cpu_read(u16 address) -> return_t override{
     if (in_range(address, { 0x8000, 0xFFFF })){
-      return address & (program_chunks > 1 ? 0x7FFF : 0x3FFF);
+      return address & (program_banks > 1 ? 0x7FFF : 0x3FFF);
     }
 
     return std::nullopt;
@@ -134,11 +134,11 @@ struct Mapper003 : Mapper{
 struct Mapper066 : Mapper{
   u8 selected_program_bank = 0;
   u8 selected_char_bank = 0;
-  u8 program_chunks;
-  u8 char_chunks;
+  u8 program_banks;
+  u8 char_banks;
 
-  Mapper066(u8 program_chunks, u8 char_chunks) 
-  : program_chunks(program_chunks), char_chunks(char_chunks) {
+  Mapper066(u8 program_banks, u8 char_banks) 
+  : program_banks(program_banks), char_banks(char_banks) {
   }
 
   auto cpu_read(u16 address) -> return_t override{

@@ -7,11 +7,20 @@
 namespace nes{
 
 struct Mapper{
+  enum class Mirroring{
+    Horizontal,
+    Vertical,
+    Hardware
+  };
+
   using return_t = std::optional<u32>;
   virtual auto cpu_write(u16 address, u8 data) -> return_t = 0;
   virtual auto cpu_read(u16 address) -> return_t = 0;
   virtual auto ppu_write(u16 address, u8 data) -> return_t = 0;
   virtual auto ppu_read(u16 address) -> return_t = 0;
+  virtual auto mirroring() -> Mirroring{
+    return Mirroring::Hardware;
+  }
 };
 
 struct Mapper000 : Mapper{

@@ -22,7 +22,7 @@ auto Ppu::mem_read(const Nes& nes, u16 address) const -> u8{
     address &= 0x0FFF;
     auto nametable_index = 0;
 
-    if (nes.cardridge.mirroring() == Cardridge::Mirroring::Vertical){
+    if (nes.cardridge.mirroring() == Mapper::Mirroring::Vertical){
       if (
         in_range(address, Ppu::TopRightNametableAddressRange) ||
         in_range(address, Ppu::BottomRightNametableAddressRange)
@@ -30,7 +30,7 @@ auto Ppu::mem_read(const Nes& nes, u16 address) const -> u8{
         nametable_index = 1;
       }
     }
-    else if (nes.cardridge.mirroring() == Cardridge::Mirroring::Horizontal){
+    else if (nes.cardridge.mirroring() == Mapper::Mirroring::Horizontal){
       if (
         in_range(address, Ppu::BottomLeftNametableAddressRange) ||
         in_range(address, Ppu::BottomRightNametableAddressRange)
@@ -60,7 +60,7 @@ auto Ppu::mem_write(Nes& nes, u16 address, u8 value) -> void{
     address &= 0x0FFF;
     auto nametable_index = 0;
 
-    if (nes.cardridge.mirroring() == Cardridge::Mirroring::Vertical){
+    if (nes.cardridge.mirroring() == Mapper::Mirroring::Vertical){
       if (
         in_range(address, Ppu::TopRightNametableAddressRange) ||
         in_range(address, Ppu::BottomRightNametableAddressRange)
@@ -68,7 +68,7 @@ auto Ppu::mem_write(Nes& nes, u16 address, u8 value) -> void{
         nametable_index = 1;
       }
     }
-    else if (nes.cardridge.mirroring() == Cardridge::Mirroring::Horizontal){
+    else if (nes.cardridge.mirroring() == Mapper::Mirroring::Horizontal){
       if (
         in_range(address, Ppu::BottomLeftNametableAddressRange) ||
         in_range(address, Ppu::BottomRightNametableAddressRange)

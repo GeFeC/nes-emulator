@@ -120,7 +120,7 @@ struct Mapper003 : Mapper{
 
   auto ppu_read(u16 address) -> return_t override{
     if (in_range(address, { 0x0000, 0x1fff })){
-      return selected_char_bank * 0x2000 + address;
+      return selected_char_bank * 8_kb + address;
     }
 
     return std::nullopt;
@@ -130,6 +130,46 @@ struct Mapper003 : Mapper{
     return std::nullopt;
   }
 };
+
+struct Mapper066 : Mapper{
+  u8 selected_program_bank = 0;
+  u8 selected_char_bank = 0;
+  u8 program_chunks;
+  u8 char_chunks;
+
+  Mapper066(u8 program_chunks, u8 char_chunks) 
+  : program_chunks(program_chunks), char_chunks(char_chunks) {
+  }
+
+  auto cpu_read(u16 address) -> return_t override{
+    if (in_range(address, { 0x8000, 0xFFFF })){
+      return selected_program_bank * 32_kb + (address & 0x7FFF);
+    }
+
+    return std::nullopt;
+  }
+
+  auto cpu_write(u16 address, u8 data) -> return_t override{
+    if (in_range(address, { 0x8000, 0xFFFF })){
+      selected_char_bank = data & 0x03;
+      selected_program_bank = (data & 0x30) >> 4;
+    }
+    return std::nullopt;
+  }
+
+  auto ppu_read(u16 address) -> return_t override{
+    if (in_range(address, { 0x0000, 0x1fff })){
+      return selected_char_bank * 8_kb + address;
+    }
+
+    return std::nullopt;
+  }
+
+  auto ppu_write(u16 address, u8 data) -> return_t override{
+    return std::nullopt;
+  }
+};
+
 
 
 } //namespace nes

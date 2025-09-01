@@ -28,7 +28,6 @@ auto main(int argc, char** argv) -> int{
       const auto view_w = h * aspect_ratio;
       const auto center_x = w / 2.f - view_w / 2;
       glViewport(center_x, 0, view_w, h);
-      std::cerr << "NIE\n";
       return;
     }
 

@@ -92,4 +92,44 @@ struct Mapper002 : Mapper{
   }
 };
 
+struct Mapper003 : Mapper{
+  u8 selected_char_bank = 0;
+  u8 program_chunks;
+  u8 char_chunks;
+
+  Mapper003(u8 program_chunks, u8 char_chunks) 
+  : program_chunks(program_chunks), char_chunks(char_chunks) {
+  }
+
+  auto cpu_read(u16 address) -> return_t override{
+    if (in_range(address, { 0x8000, 0xFFFF })){
+      return address & (program_chunks > 1 ? 0x7FFF : 0x3FFF);
+    }
+
+    return std::nullopt;
+  }
+
+  auto cpu_write(u16 address, u8 data) -> return_t override{
+    if (in_range(address, { 0x8000, 0xFFFF })){
+      selected_char_bank = data & 0x03;
+      return address;
+    }
+
+    return std::nullopt;
+  }
+
+  auto ppu_read(u16 address) -> return_t override{
+    if (in_range(address, { 0x0000, 0x1fff })){
+      return selected_char_bank * 0x2000 + address;
+    }
+
+    return std::nullopt;
+  }
+
+  auto ppu_write(u16 address, u8 data) -> return_t override{
+    return std::nullopt;
+  }
+};
+
+
 } //namespace nes

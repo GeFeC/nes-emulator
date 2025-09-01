@@ -74,6 +74,8 @@ struct Cardridge{
         mapper = std::make_unique<Mapper000>(header.program_rom_chunks); break;
       case 2:
         mapper = std::make_unique<Mapper002>(header.program_rom_chunks, header.char_rom_chunks); break;
+      case 3:
+        mapper = std::make_unique<Mapper003>(header.program_rom_chunks, header.char_rom_chunks); break;
       default:
         throw std::runtime_error("Unsupported mapper: " + std::to_string(mapper_id()));
     }

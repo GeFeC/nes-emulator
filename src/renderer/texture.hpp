@@ -403,7 +403,7 @@ struct Texture{
       else if (c == '#'){
         sprite_index = 39;
       }
-      else throw std::runtime_error("Unknown character");
+      else throw std::runtime_error("Unknown character: " + std::string(1, c));
 
       auto sprite_begin = sprite_index * 8 * 8;
 

@@ -4,7 +4,6 @@
 #include "util.hpp"
 #include <cassert>
 #include <cstring> //For memset
-#include <ctime>
 
 namespace nes{
 

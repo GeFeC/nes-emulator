@@ -51,16 +51,18 @@ struct Debugger{
 
   u16 nmi_pc = 0x0;
 
-  Debugger() : texture(gf::math::vec2(Size)) {}
+  Ring<u16> pc_history;
 
-  auto render_pattern_table(Nes& nes, int index, const gf::math::vec2& position){
-    for (auto [x, y] : gf::math::range({ 16, 16 })){
+  Debugger() : texture(vec2(Size)), pc_history(11) {}
+
+  auto render_pattern_table(Nes& nes, int index, const vec2& position){
+    for (auto [x, y] : range({ 16, 16 })){
       const auto offset = 0x1000 * index + 256 * y + x * 16;
-      for (auto sprite_row : gf::math::range(8)){
+      for (auto sprite_row : range(8)){
         auto lsb = nes.ppu_read(offset + sprite_row);
         auto msb = nes.ppu_read(offset + sprite_row + 8);
 
-        for (auto sprite_column : gf::math::range(8)){
+        for (auto sprite_column : range(8)){
           const auto pixel = (lsb & 0x01) + ((msb & 0x01) << 1);
           lsb >>= 1;
           msb >>= 1;
@@ -71,7 +73,7 @@ struct Debugger{
 
           const auto color = nes.ppu.colors[palette_color];
           texture.set_pixel(
-            position + gf::math::vec2(x * 8 + 7 - sprite_column, y * 8 + sprite_row),
+            position + vec2(x * 8 + 7 - sprite_column, y * 8 + sprite_row),
             color
           );
         }
@@ -79,20 +81,20 @@ struct Debugger{
     }
   }
 
-  auto render_palette_color(Nes& nes, const gf::math::vec2& position, const Texture::pixel_color& color){
-    for (auto [x, y] : gf::math::range({ 8, 8 })){
-      texture.set_pixel(position + gf::math::vec2(x, y), color);
+  auto render_palette_color(Nes& nes, const vec2& position, const Texture::pixel_color& color){
+    for (auto [x, y] : range({ 8, 8 })){
+      texture.set_pixel(position + vec2(x, y), color);
     }
   }
 
-  auto render_palettes(Nes& nes, const gf::math::vec2& position){
-    for (auto [x, y] : gf::math::range({ 4, 8 })){
+  auto render_palettes(Nes& nes, const vec2& position){
+    for (auto [x, y] : range({ 4, 8 })){
       const auto color_index = nes.ppu_read(
         nes::Ppu::PalettesAddressRange.first + x + y * 4
       );
       const auto color = nes.ppu.colors[color_index];
 
-      const auto final_position = position + gf::math::vec2(x * 8.f, y * 9.f);
+      const auto final_position = position + vec2(x * 8.f, y * 9.f);
       render_palette_color(nes, final_position, color);
     }
   }
@@ -126,7 +128,7 @@ struct Debugger{
     return 0;
   }
 
-  auto render_instruction(Nes& nes, const gf::math::vec2& position, int address){
+  auto render_instruction(Nes& nes, const vec2& position, int address){
     auto opcode = nes.mem_read(address);
 
     const auto name = opcode_names[opcode];
@@ -197,15 +199,12 @@ struct Debugger{
 
     auto str = name + "              ";
     str.insert(5, op_arg);
-    texture.print(position, hex_str(u16(address)) + ":" + str);
+    texture.print(position, hex_str(u8(nes.cardridge.mapper->current_program_bank())) + ":" + hex_str(u16(address)) + ":" + str);
 
-    texture.print(
-      position + gf::math::vec2(144.f, 0.f), 
-      op_str + " " + arg_byte1 + " " + arg_byte2
-    );
+    texture.print(position + vec2(152.f, 0.f), op_str);
 
     if (address == nmi_pc){
-      texture.print(position + gf::math::vec2(256.f - 4 * 8.f, 0.f), "NMI");
+      texture.print(position + vec2(256.f - 4 * 8.f, 0.f), "NMI");
     }
 
     return size;
@@ -213,18 +212,33 @@ struct Debugger{
 
   auto render_cpu_page(Nes& nes){
     //Render code:
-    const auto code_pos = gf::math::vec2(0.f, 0.f);
-    auto code_height = 160.f;
+    const auto code_pos = vec2(0.f, 96.f);
+    auto code_height = 88.f;
     auto instruction_y = 0.f;
 
     auto i = 0;
     texture.text_color = Texture::pixel_color(255, 255, 0);
     const auto current_pc = nes.cpu.pc;
 
-    while(instruction_y < code_pos.y + code_height){
+    //Render pc history:
+    const auto pc_history_pos = vec2(0.f, 0.f);
+    texture.text_color = Texture::pixel_color(0, 255, 255);
+
+    pc_history.for_each([&](u16 pc, u32 index){
+      render_instruction(nes, pc_history_pos + vec2(0.f, (pc_history.size - i - 1) * 8.f), pc);
+      i++;
+      if (i == pc_history.size) return false;
+
+      return true;
+    });
+    i = 0;
+
+    //Render code:
+    texture.text_color = Texture::pixel_color(255, 255, 0);
+    while(instruction_y < code_height){
       const auto op_size = render_instruction(
         nes, 
-        code_pos + gf::math::vec2(0.f, instruction_y), 
+        code_pos + vec2(0.f, instruction_y), 
         current_pc + i
       );
       
@@ -234,41 +248,45 @@ struct Debugger{
       texture.text_color = Texture::pixel_color(255, 255, 255);
     }
 
-    const auto registers_pos = gf::math::vec2(0.f, code_height + 8.f);
+    const auto registers_pos = vec2(0.f, code_pos.y + code_height + 8.f);
 
     //Render registers:
-    texture.print(registers_pos + gf::math::vec2(0.f, 0), "X:" + hex_str(nes.cpu.x));
-    texture.print(registers_pos + gf::math::vec2(40.f, 0), "Y:" + hex_str(nes.cpu.y));
-    texture.print(registers_pos + gf::math::vec2(80.f, 0), "A:" + hex_str(nes.cpu.accumulator));
-    texture.print(registers_pos + gf::math::vec2(120.f, 0), "SP:" + hex_str(nes.cpu.sp));
-    texture.print(registers_pos + gf::math::vec2(168.f, 0), "STATUS:" + hex_str(nes.cpu.status));
+    texture.print(registers_pos + vec2(0.f, 0), "X:" + hex_str(nes.cpu.x));
+    texture.print(registers_pos + vec2(40.f, 0), "Y:" + hex_str(nes.cpu.y));
+    texture.print(registers_pos + vec2(80.f, 0), "A:" + hex_str(nes.cpu.accumulator));
+    texture.print(registers_pos + vec2(120.f, 0), "SP:" + hex_str(nes.cpu.sp));
+    texture.print(registers_pos + vec2(168.f, 0), "STATUS:" + hex_str(nes.cpu.status));
 
 
   }
 
   auto render_ppu_page(Nes& nes){
-    auto pattern_tables_pos = gf::math::vec2(0.f);
+    auto pattern_tables_pos = vec2(0.f);
     render_pattern_table(nes, 0, pattern_tables_pos);
-    render_pattern_table(nes, 1, pattern_tables_pos + gf::math::vec2(128.f, 0.f));
+    render_pattern_table(nes, 1, pattern_tables_pos + vec2(128.f, 0.f));
 
-    texture.print(gf::math::vec2(0.f, 128.f), "PALETTES");
+    texture.print(vec2(0.f, 128.f), "PALETTES");
 
-    for (auto i : gf::math::range(8)){
-      texture.print(gf::math::vec2(0.f, 136.f + i * 9.f), std::string(1, '0' + i));
+    for (auto i : range(8)){
+      texture.print(vec2(0.f, 136.f + i * 9.f), std::string(1, '0' + i));
     }
 
-    render_palettes(nes, gf::math::vec2(10.f, 136.f));
+    render_palettes(nes, vec2(10.f, 136.f));
 
     auto offset = 0.f;
     auto offset_step = 0.f;
 
-    auto registers_pos = gf::math::vec2(80.f, pattern_tables_pos.y + 128.f);
+    auto registers_pos = vec2(80.f, pattern_tables_pos.y + 128.f);
     auto step = 8.f;
-    texture.print(registers_pos + gf::math::vec2(0.f, step * 0), "PPU");
-    texture.print(registers_pos + gf::math::vec2(0.f, step * 1), "STATUS:" + hex_str(nes.ppu.status));
-    texture.print(registers_pos + gf::math::vec2(0.f, step * 2), "MASK:" + hex_str(nes.ppu.mask));
-    texture.print(registers_pos + gf::math::vec2(0.f, step * 3), "CONTROL:" + hex_str(nes.ppu.control));
-    texture.print(registers_pos + gf::math::vec2(0.f, step * 4), "SPRITE0:" + hex_str(nes.ppu.oam[0].id));
+    texture.print(registers_pos + vec2(0.f, step * 0), "PPU");
+    texture.print(registers_pos + vec2(0.f, step * 1), "STATUS:" + hex_str(nes.ppu.status));
+    texture.print(registers_pos + vec2(0.f, step * 2), "MASK:" + hex_str(nes.ppu.mask));
+    texture.print(registers_pos + vec2(0.f, step * 3), "CONTROL:" + hex_str(nes.ppu.control));
+    texture.print(registers_pos + vec2(0.f, step * 4), "SPRITE0:" + hex_str(nes.ppu.oam[0].id));
+
+    texture.print(registers_pos + vec2(0.f, step * 6), "NAMETABLE Y: " + hex_str(nes.ppu.tram_address.props.nametable_y));
+    texture.print(registers_pos + vec2(0.f, step * 7), "COARSE Y: " + hex_str(nes.ppu.vram_address.props.scroll_y));
+    texture.print(registers_pos + vec2(0.f, step * 8), "SCROLL Y: " + hex_str(nes.ppu.vram_address.props.cell_scroll_y));
   }
 
   auto render(Nes& nes){
@@ -280,13 +298,18 @@ struct Debugger{
       render_ppu_page(nes);
     }
 
-    texture.print(gf::math::vec2(0.f, 240.f - 8.f), "CYCLES:" + std::to_string(nes.cycles));
+    texture.print(vec2(0.f, 240.f - 8.f), "CYCLES:" + std::to_string(nes.cycles));
   }
 
-  auto loop(const Window& window, const Nes& nes){
+  auto loop(const Window& window, Nes& nes){
     if (window.is_key_down(GLFW_KEY_1)) page = Page::Cpu;
     if (window.is_key_down(GLFW_KEY_2)) page = Page::Ppu;
     nmi_pc = nes.nmi_pc;
+    
+    if (nes.cpu.next_instruction_started){
+      pc_history.push(nes.cpu.instruction_pc);
+      nes.cpu.next_instruction_started = false;
+    }
   }
 };
 

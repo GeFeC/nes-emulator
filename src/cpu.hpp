@@ -65,6 +65,10 @@ struct Cpu{
   u32 cycles = 7;
   bool accumulator_addressing = false;
 
+  //For debugger:
+  bool next_instruction_started = true;
+  u16 instruction_pc = 0;
+
   std::array<Instruction, 16 * 16> instruction_lookup;
 
   Cpu();

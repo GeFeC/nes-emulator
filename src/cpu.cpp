@@ -1,6 +1,5 @@
 #include "cpu.hpp"
 #include "nes.hpp"
-#include <iostream>
 #include <algorithm>
 
 namespace nes{
@@ -1016,6 +1015,10 @@ auto Cpu::stack_pull_u16(Nes& nes) -> u16{
 auto Cpu::execute_instruction(Nes& nes, u8 opcode) -> bool{
   auto instruction = instruction_lookup[opcode];
 
+  if (instruction.call_ptr == nullptr){
+    throw std::runtime_error(hex_str(instruction_pc) + " Unsupported opcode: " + hex_str(opcode));
+  }
+
   const auto may_req_additional_cycle = set_address_mode(nes, instruction.address_mode);
   this->req_cycles = instruction.req_cycles;
   if (instruction.may_req_additional_cycle && may_req_additional_cycle){
@@ -1023,11 +1026,6 @@ auto Cpu::execute_instruction(Nes& nes, u8 opcode) -> bool{
   }
 
   accumulator_addressing = instruction.address_mode == AddressMode::Accumulator;
-
-  if (instruction.call_ptr == nullptr){
-    std::cerr << std::hex << pc << " Unsupported opcode: " << int(opcode) << '\n';
-    throw std::runtime_error("");
-  }
 
   instruction.call_ptr(*this, nes);
 
@@ -1037,6 +1035,10 @@ auto Cpu::execute_instruction(Nes& nes, u8 opcode) -> bool{
 auto Cpu::clock(Nes& nes) -> void{
   if (req_cycles == 0){
     const u8 cmd = nes.mem_read(pc);
+
+    next_instruction_started = true;
+    instruction_pc = pc;
+
     pc++;
 
     const auto requires_additional_cycle = execute_instruction(nes, cmd);

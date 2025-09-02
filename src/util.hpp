@@ -64,4 +64,44 @@ inline auto hex_str(u16 value){
   return str;
 }
 
+template<typename T>
+struct Ring{
+  std::vector<T> vec;
+  u32 size;
+  u32 index = 0;
+
+  Ring(u32 size) : size(size){
+    vec.resize(size);
+  }
+
+  auto push(const T& t){
+    vec[index] = t;
+    index++;
+    if (index == size) index = 0;
+  }
+
+  auto push(T&& t){
+    vec[index] = std::move(t);
+    index++;
+    if (index == size) index = 0;
+  }
+
+  template<typename Callable>
+  auto for_each(Callable callable){
+    auto iter_index = index;
+
+    for (int i = 0; i < size; ++i){
+      if (iter_index == 0){
+        iter_index = size;
+      }
+
+      iter_index--;
+
+      if (!callable(vec[iter_index], iter_index)){
+        break;
+      }
+    }
+  }
+};
+
 } //namespace nes

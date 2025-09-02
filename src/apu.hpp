@@ -355,6 +355,10 @@ struct Apu{
     sound.play(callback);
   }
 
+  auto stop(){
+    sound.stop();
+  }
+
 };
 
 } //namespace nes

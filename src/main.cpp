@@ -3,6 +3,7 @@
 #include "nes.hpp"
 #include "debugger.hpp"
 
+#include <iostream>
 #include <cassert>
 
 static constexpr auto Viewport = gf::math::vec2(
@@ -48,12 +49,14 @@ auto main(int argc, char** argv) -> int{
     static auto time = 0.0;
 
     if (nes.paused) return 0.f;
+
     while(!nes.clock()){
       debugger.loop(window, nes);
 
       if (nes.paused) return 0.f;
       time += 1.0 / nes::Nes::CyclesPerSec;
     }
+    debugger.loop(window, nes);
 
     auto& apu = nes.apu;
     const auto pulse_out = 0.00752f * (apu.pulse1.output(time) + apu.pulse2.output(time));
@@ -95,5 +98,7 @@ auto main(int argc, char** argv) -> int{
 
     delta_time = glfwGetTime() - start_frame_time;
   }
+
+  nes.apu.stop();
 
 }

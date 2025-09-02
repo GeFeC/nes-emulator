@@ -7,7 +7,7 @@
 #include <vector>
 #include <fstream>
 #include <memory>
-#include <iostream>
+#include <optional>
 
 namespace nes{
 
@@ -73,6 +73,8 @@ struct Cardridge{
     switch(mapper_id()){
       case 0: 
         mapper = std::make_unique<Mapper000>(header.program_rom_chunks); break;
+      case 1: 
+        mapper = std::make_unique<Mapper001>(header.program_rom_chunks, header.char_rom_chunks); break;
       case 2:
         mapper = std::make_unique<Mapper002>(header.program_rom_chunks, header.char_rom_chunks); break;
       case 3:
@@ -85,10 +87,11 @@ struct Cardridge{
   }
 
   auto cpu_write(u16 address, u8 value){
-    const auto card_address = mapper->cpu_write(address, value);
+    const auto mapped = mapper->cpu_write(address, value);
 
-    if (card_address != std::nullopt){
-      program_memory[card_address.value()] = value;
+    if (mapped.used_cartridge_ram()) return true;
+    if (mapped.has_address()){
+      program_memory[mapped.address] = value;
       return true;
     }
 
@@ -96,19 +99,24 @@ struct Cardridge{
   }
 
   auto cpu_read(u16 address) const -> std::optional<u8>{
-    const auto card_address = mapper->cpu_read(address);
-    if (card_address != std::nullopt){
-      return program_memory[card_address.value()];
+    const auto mapped = mapper->cpu_read(address);
+
+    if (mapped.used_cartridge_ram()){
+      return mapped.data;
+    }
+
+    if (mapped.has_address()){
+      return program_memory[mapped.address];
     }
 
     return std::nullopt;
   }
 
   auto ppu_write(u16 address, u8 value) -> bool{
-    const auto card_address = mapper->ppu_write(address, value);
+    const auto mapped = mapper->ppu_write(address, value);
 
-    if (card_address != std::nullopt){
-      char_memory[card_address.value()] = value;
+    if (mapped.has_address()){
+      char_memory[mapped.address] = value;
       return true;
     }
 
@@ -116,10 +124,10 @@ struct Cardridge{
   }
 
   auto ppu_read(u16 address) const -> std::optional<u8>{
-    const auto card_address = mapper->ppu_read(address);
+    const auto mapped = mapper->ppu_read(address);
 
-    if (card_address.has_value()){
-      return char_memory[card_address.value()];
+    if (mapped.has_address()){
+      return char_memory[mapped.address];
     }
 
     return std::nullopt;

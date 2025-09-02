@@ -18,6 +18,7 @@ Nintendo Entertainment System emulator implementation in C++
     - [ ] DMC
 - [ ] Mappers
     - [x] Mapper000
+    - [x] Mapper001
     - [x] Mapper002
     - [x] Mapper003
     - [x] Mapper066

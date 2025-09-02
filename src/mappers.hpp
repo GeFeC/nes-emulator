@@ -2,25 +2,65 @@
 
 #include "aliases.hpp"
 #include "util.hpp"
-#include <optional>
 
 namespace nes{
 
+struct MapperResult{
+  enum class Status{
+    Mapped,
+    NotMapped,
+    UsedCartridgeRam
+  };
+
+  u32 address;
+  u32 data;
+  Status status;
+
+  MapperResult() {}
+  MapperResult(u32 address) : address(address), status(Status::Mapped) {}
+
+  auto has_address() const{
+    return status == Status::Mapped;
+  }
+
+  auto used_cartridge_ram() const{
+    return status == Status::UsedCartridgeRam;
+  }
+
+  static auto not_mapped(){
+    auto r = MapperResult();
+    r.status = Status::NotMapped;
+
+    return r;
+  }
+
+  static auto used_cartridge_ram(u32 data){
+    auto r = MapperResult();
+    r.status = Status::UsedCartridgeRam;
+    r.data = data;
+
+    return r;
+  }
+};
+
 struct Mapper{
   enum class Mirroring{
+    OneScreenLow,
+    OneScreenHigh,
     Horizontal,
     Vertical,
     Hardware
   };
 
-  using return_t = std::optional<u32>;
-  virtual auto cpu_write(u16 address, u8 data) -> return_t = 0;
-  virtual auto cpu_read(u16 address) -> return_t = 0;
-  virtual auto ppu_write(u16 address, u8 data) -> return_t = 0;
-  virtual auto ppu_read(u16 address) -> return_t = 0;
+  virtual auto cpu_write(u16 address, u8 data) -> MapperResult = 0;
+  virtual auto cpu_read(u16 address) -> MapperResult = 0;
+  virtual auto ppu_write(u16 address, u8 data) -> MapperResult = 0;
+  virtual auto ppu_read(u16 address) -> MapperResult = 0;
   virtual auto mirroring() -> Mirroring{
     return Mirroring::Hardware;
   }
+
+  virtual auto current_program_bank() -> u16 = 0;
 };
 
 struct Mapper000 : Mapper{
@@ -28,31 +68,211 @@ struct Mapper000 : Mapper{
 
   Mapper000(u8 program_banks) : program_banks(program_banks) {}
 
-  auto cpu_read(u16 address) -> return_t override{
+  auto cpu_read(u16 address) -> MapperResult override{
     if (in_range(address, { 0x8000, 0xFFFF })){
       return address & (program_banks > 1 ? 0x7FFF : 0x3FFF);
     }
 
-    return std::nullopt;
+    return MapperResult::not_mapped();
   }
 
-  auto cpu_write(u16 address, u8 data) -> return_t override{
+  auto cpu_write(u16 address, u8 data) -> MapperResult override{
     //The same as read
     return cpu_read(address);
   }
 
-  auto ppu_read(u16 address) -> return_t override{
+  auto ppu_read(u16 address) -> MapperResult override{
     if (in_range(address, { 0x0000, 0x1FFF })){
       return address;
     }
 
-    return std::nullopt;
+    return MapperResult::not_mapped();
   }
 
-  auto ppu_write(u16 address, u8 data) -> return_t override{
+  auto ppu_write(u16 address, u8 data) -> MapperResult override{
     //The same as read
     return ppu_read(address);
   }
+
+  auto current_program_bank() -> u16 override{
+    return 0;
+  }
+};
+
+struct Mapper001 : Mapper{
+  u8 control = 0;
+  u8 program_banks = 0;
+  u8 char_banks = 0;
+
+  u8 selected_program_bank16_low = 0;
+  u8 selected_program_bank16_high = 0;
+  u8 selected_program_bank32 = 0;
+
+  u8 selected_char_bank4_low = 0;
+  u8 selected_char_bank4_high = 0;
+  u8 selected_char_bank8 = 0;
+
+  u8 shift_buffer = 0;
+  u8 shift_buffer_size = 0;
+
+  Mirroring mirroring_buffer = Mirroring::OneScreenHigh;
+
+  std::vector<u8> static_ram;
+
+  Mapper001(u8 program_banks, u8 char_banks) 
+  : program_banks(program_banks), char_banks(char_banks) {
+    static_ram.resize(32_kb, 0);
+  }
+
+  auto current_program_bank() -> u16 override{
+    const auto program_mode = (control >> 2) & 0x03;
+    if (program_mode < 2){
+      return selected_program_bank32;
+    }
+    else if (program_mode == 2){
+      return selected_program_bank16_low;
+    }
+    else if (program_mode == 3){
+      return selected_program_bank16_high;
+    }
+    return 0;
+  }
+
+  auto in_static_ram_range(u16 address){
+    return in_range(address, { 0x6000, 0x7FFF });
+  }
+
+  auto cpu_read(u16 address) -> MapperResult override{
+    if (address < 0x6000){
+      return MapperResult::not_mapped();
+    }
+
+    if (in_static_ram_range(address)){
+      return MapperResult::used_cartridge_ram(static_ram[address & 0x1FFF]);
+    }
+
+    if (control & 0b01000){
+      //16Kb mode:
+      if (in_range(address, { 0x8000, 0xBFFF })){
+        return selected_program_bank16_low * 16_kb + (address & 0x3FFF);
+      }
+
+      if (in_range(address, { 0xC000, 0xFFFF })){
+        return selected_program_bank16_high * 16_kb + (address & 0x3FFF);
+      }
+
+    }
+    else{
+      //32Kb mode:
+      return selected_program_bank32 * 32_kb + (address & 0x7FFF);
+    }
+
+    return MapperResult::not_mapped();
+  }
+
+  auto cpu_write(u16 address, u8 data) -> MapperResult override{
+    if (address < 0x6000){ 
+      return MapperResult::not_mapped();
+    }
+
+    if (in_static_ram_range(address)){
+      static_ram[address & 0x1FFF] = data;
+      return MapperResult::used_cartridge_ram(0);
+    }
+
+    if (data & 0x80){
+      shift_buffer = 0;
+      shift_buffer_size = 0;
+      control |= 0x0C;
+    }
+    else{
+      shift_buffer >>= 1;
+      shift_buffer |= (data & 0x01) << 4;
+      shift_buffer_size++;
+
+      if (shift_buffer_size < 5) return MapperResult::not_mapped();
+
+      const auto target_register = (address >> 13) & 0x03;
+
+      if (target_register == 0){
+        control = shift_buffer & 0x1F;
+
+        switch(control & 0x03){
+          case 0: mirroring_buffer = Mirroring::OneScreenLow; break; 
+          case 1: mirroring_buffer = Mirroring::OneScreenHigh; break; 
+          case 2: mirroring_buffer = Mirroring::Vertical; break; 
+          case 3: mirroring_buffer = Mirroring::Horizontal; break; 
+        }
+      }
+      else if (target_register == 1){
+        if (control & 0b10000){
+          //4Kb mode:
+          selected_char_bank4_low = shift_buffer & 0x1F;
+        }
+        else{
+          //8Kb mode:
+          selected_char_bank8 = shift_buffer & 0x1E;
+        }
+      }
+      else if (target_register == 2){
+        if (control & 0b10000){
+          //4Kb mode:
+          selected_char_bank4_high = shift_buffer & 0x1F;
+        }
+      }
+      else if (target_register == 3){
+        const auto program_mode = (control >> 2) & 0x03;
+
+        if (program_mode < 2){
+          selected_program_bank32 = (shift_buffer & 0x0E) >> 1;
+        }
+        else if (program_mode == 2){
+          selected_program_bank16_low = 0;
+          selected_program_bank16_high = shift_buffer & 0x0F;
+        }
+        else{
+          selected_program_bank16_low = shift_buffer & 0x0F;
+          selected_program_bank16_high = program_banks - 1;
+        }
+      }
+      
+      shift_buffer = 0;
+      shift_buffer_size = 0;
+    }
+
+    return MapperResult::not_mapped();
+  }
+
+  auto ppu_read(u16 address) -> MapperResult override{
+    if (address >= 0x2000) return MapperResult::not_mapped();
+
+    if (char_banks == 0){
+      return address;
+    }
+
+    if (control & 0b10000){
+      if (in_range(address, { 0x0000, 0x0FFF })){
+        return selected_char_bank4_low * 4_kb + (address & 0x0FFF);
+      }
+      if (in_range(address, { 0x1000, 0x1FFF })){
+        return selected_char_bank4_high * 4_kb + (address & 0x0FFF);
+      }
+    }
+    else{
+      return selected_char_bank8 * 8_kb + (address & 0x1FFF);
+    }
+
+    return MapperResult::not_mapped();
+  }
+
+  auto ppu_write(u16 address, u8 data) -> MapperResult override{
+    return ppu_read(address);
+  }
+
+  auto mirroring() -> Mirroring override{
+    return mirroring_buffer;
+  }
+
 };
 
 struct Mapper002 : Mapper{
@@ -61,10 +281,9 @@ struct Mapper002 : Mapper{
   u8 char_banks;
 
   Mapper002(u8 program_banks, u8 char_banks) 
-  : program_banks(program_banks), char_banks(char_banks) {
-  }
+  : program_banks(program_banks), char_banks(char_banks) {}
 
-  auto cpu_read(u16 address) -> return_t override{
+  auto cpu_read(u16 address) -> MapperResult override{
     if (in_range(address, { 0x8000, 0xBFFF })){
       return selected_program_bank * 16_kb + (address - 0x8000);
     }
@@ -72,32 +291,36 @@ struct Mapper002 : Mapper{
       return (program_banks - 1) * 16_kb + (address - 0xC000);
     }
 
-    return std::nullopt;
+    return MapperResult::not_mapped();
   }
 
-  auto cpu_write(u16 address, u8 data) -> return_t override{
+  auto cpu_write(u16 address, u8 data) -> MapperResult override{
     if (in_range(address, { 0x8000, 0xFFFF })){
       selected_program_bank = data & 0x0F;
     }
-    return std::nullopt;
+    return MapperResult::not_mapped();
   }
 
-  auto ppu_read(u16 address) -> return_t override{
+  auto ppu_read(u16 address) -> MapperResult override{
     if (in_range(address, { 0x0000, 0x1fff })){
       return (address);
     }
 
-    return std::nullopt;
+    return MapperResult::not_mapped();
   }
 
-  auto ppu_write(u16 address, u8 data) -> return_t override{
+  auto ppu_write(u16 address, u8 data) -> MapperResult override{
     if (in_range(address, { 0x0000, 0x1fff })){
       if (char_banks == 0){
         return (address);
       }
     }
 
-    return std::nullopt;
+    return MapperResult::not_mapped();
+  }
+
+  auto current_program_bank() -> u16 override{
+    return selected_program_bank;
   }
 };
 
@@ -110,33 +333,37 @@ struct Mapper003 : Mapper{
   : program_banks(program_banks), char_banks(char_banks) {
   }
 
-  auto cpu_read(u16 address) -> return_t override{
+  auto cpu_read(u16 address) -> MapperResult override{
     if (in_range(address, { 0x8000, 0xFFFF })){
       return address & (program_banks > 1 ? 0x7FFF : 0x3FFF);
     }
 
-    return std::nullopt;
+    return MapperResult::not_mapped();
   }
 
-  auto cpu_write(u16 address, u8 data) -> return_t override{
+  auto cpu_write(u16 address, u8 data) -> MapperResult override{
     if (in_range(address, { 0x8000, 0xFFFF })){
       selected_char_bank = data & 0x03;
       return address;
     }
 
-    return std::nullopt;
+    return MapperResult::not_mapped();
   }
 
-  auto ppu_read(u16 address) -> return_t override{
+  auto ppu_read(u16 address) -> MapperResult override{
     if (in_range(address, { 0x0000, 0x1fff })){
       return selected_char_bank * 8_kb + address;
     }
 
-    return std::nullopt;
+    return MapperResult::not_mapped();
   }
 
-  auto ppu_write(u16 address, u8 data) -> return_t override{
-    return std::nullopt;
+  auto ppu_write(u16 address, u8 data) -> MapperResult override{
+    return MapperResult::not_mapped();
+  }
+
+  auto current_program_bank() -> u16 override{
+    return 0;
   }
 };
 
@@ -150,32 +377,36 @@ struct Mapper066 : Mapper{
   : program_banks(program_banks), char_banks(char_banks) {
   }
 
-  auto cpu_read(u16 address) -> return_t override{
+  auto cpu_read(u16 address) -> MapperResult override{
     if (in_range(address, { 0x8000, 0xFFFF })){
       return selected_program_bank * 32_kb + (address & 0x7FFF);
     }
 
-    return std::nullopt;
+    return MapperResult::not_mapped();
   }
 
-  auto cpu_write(u16 address, u8 data) -> return_t override{
+  auto cpu_write(u16 address, u8 data) -> MapperResult override{
     if (in_range(address, { 0x8000, 0xFFFF })){
       selected_char_bank = data & 0x03;
       selected_program_bank = (data & 0x30) >> 4;
     }
-    return std::nullopt;
+    return MapperResult::not_mapped();
   }
 
-  auto ppu_read(u16 address) -> return_t override{
+  auto ppu_read(u16 address) -> MapperResult override{
     if (in_range(address, { 0x0000, 0x1fff })){
       return selected_char_bank * 8_kb + address;
     }
 
-    return std::nullopt;
+    return MapperResult::not_mapped();
   }
 
-  auto ppu_write(u16 address, u8 data) -> return_t override{
-    return std::nullopt;
+  auto ppu_write(u16 address, u8 data) -> MapperResult override{
+    return MapperResult::not_mapped();
+  }
+
+  auto current_program_bank() -> u16 override{
+    return selected_program_bank;
   }
 };
 

@@ -37,6 +37,7 @@ auto Ppu::mem_read(const Nes& nes, u16 address) const -> u8{
       ){
         nametable_index = 1;
       }
+
     }
 
     return nametables[nametable_index][address & 0x03FF];
@@ -131,8 +132,8 @@ auto Ppu::cpu_write(Nes& nes, u16 address, u8 value) -> void{
   switch(address){
     case CpuControlPort:
       control = value;
-      tram_address.props.nametable_x = control & Control::NametableX;
-      tram_address.props.nametable_y = control & Control::NametableY;
+      tram_address.props.nametable_x = (control & Control::NametableX) > 0;
+      tram_address.props.nametable_y = (control & Control::NametableY) > 0;
       break;
 
     case CpuMaskPort:
@@ -153,7 +154,6 @@ auto Ppu::cpu_write(Nes& nes, u16 address, u8 value) -> void{
 
         tram_address.props.cell_scroll_y = value & 0x07;
         tram_address.props.scroll_y = value >> 3;
-
       }
       else{
         address_latch = Ppu::AddressLatch::LSB;

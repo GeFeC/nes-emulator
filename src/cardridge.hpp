@@ -43,6 +43,21 @@ struct Cardridge{
     return mapper->mirroring();
   }
 
+  auto get_game_name(std::string filepath){
+    //Remove extension:
+    filepath.pop_back();
+    filepath.pop_back();
+    filepath.pop_back();
+    filepath.pop_back();
+
+    const auto slash_pos = filepath.rfind('/');
+
+    if (slash_pos == std::string::npos){
+      return filepath;
+    }
+    return filepath.substr(slash_pos);
+  }
+
   auto from_file(const std::string& filepath){
     auto file = file_open_for_reading(filepath, std::ios::binary);
 
@@ -70,11 +85,12 @@ struct Cardridge{
       throw std::runtime_error("Unsupported file type: " + std::to_string(file_type));
     }
 
+    const auto game_name = get_game_name(filepath);
     switch(mapper_id()){
       case 0: 
         mapper = std::make_unique<Mapper000>(header.program_rom_chunks); break;
       case 1: 
-        mapper = std::make_unique<Mapper001>(header.program_rom_chunks, header.char_rom_chunks); break;
+        mapper = std::make_unique<Mapper001>(game_name, header.program_rom_chunks, header.char_rom_chunks); break;
       case 2:
         mapper = std::make_unique<Mapper002>(header.program_rom_chunks, header.char_rom_chunks); break;
       case 3:

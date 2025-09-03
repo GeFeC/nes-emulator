@@ -37,6 +37,7 @@ auto main(int argc, char** argv) -> int{
     glViewport(0, center_y, w, view_h);
   });
 
+
   nes::Nes nes;
   nes.load_cardridge(rom_path + ".nes");
   nes::Renderer renderer(Viewport);

@@ -2,6 +2,7 @@
 
 #include "aliases.hpp"
 #include "util.hpp"
+#include <fstream>
 
 namespace nes{
 
@@ -61,6 +62,7 @@ struct Mapper{
   }
 
   virtual auto current_program_bank() -> u16 = 0;
+  virtual ~Mapper() {}
 };
 
 struct Mapper000 : Mapper{
@@ -118,10 +120,16 @@ struct Mapper001 : Mapper{
   Mirroring mirroring_buffer = Mirroring::OneScreenHigh;
 
   std::vector<u8> static_ram;
+  std::string game_name;
 
-  Mapper001(u8 program_banks, u8 char_banks) 
-  : program_banks(program_banks), char_banks(char_banks) {
+  Mapper001(const std::string& game_name, u8 program_banks, u8 char_banks) 
+  : program_banks(program_banks), char_banks(char_banks), game_name(game_name) {
     static_ram.resize(32_kb, 0);
+
+    auto file = std::ifstream(game_name + ".sav", std::ios::binary);
+    if (!file) return;
+
+    file.read(reinterpret_cast<char*>(static_ram.data()), static_ram.size());
   }
 
   auto current_program_bank() -> u16 override{
@@ -273,6 +281,10 @@ struct Mapper001 : Mapper{
     return mirroring_buffer;
   }
 
+  ~Mapper001() override{
+    auto file = std::ofstream(game_name + ".sav", std::ios::binary);
+    file.write(reinterpret_cast<char*>(static_ram.data()), static_ram.size()); 
+  }
 };
 
 struct Mapper002 : Mapper{

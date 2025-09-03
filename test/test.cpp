@@ -54,8 +54,8 @@ inline auto test_cpu(){
   }
 
   nes.cpu.pc = 0xC000;
-  nes.cpu.set_status(Cpu::Status::Unused, 1);
-  nes.cpu.set_status(Cpu::Status::InterruptDisable, 1);
+  nes.cpu.status.set(Cpu::Status::Unused, 1);
+  nes.cpu.status.set(Cpu::Status::InterruptDisable, 1);
 
   auto cmds = 0;
   while(cmds < log_data.size()){
@@ -67,7 +67,7 @@ inline auto test_cpu(){
     test("A", cmds, data.a, (cpu.accumulator));
     test("X", cmds, data.x, (cpu.x));
     test("Y", cmds, data.y, (cpu.y));
-    test("P", cmds, data.p, (cpu.status));
+    test("P", cmds, data.p, (cpu.status.value));
     test("SP", cmds, data.sp, (cpu.sp));
     test("CYC", cmds, data.cycles, cpu.cycles);
 

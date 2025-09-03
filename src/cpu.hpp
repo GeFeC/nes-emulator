@@ -1,5 +1,6 @@
 #pragma once
 #include "aliases.hpp"
+#include "util.hpp"
 #include <array>
 
 namespace nes{
@@ -11,17 +12,15 @@ struct Cpu{
   static constexpr auto StackEnd = 0x0100;
   static constexpr auto MayRequireAdditionalCycle = 1; 
 
-  struct Status{
-    enum{
-      Carry = 1,
-      Zero = (1 << 1),
-      InterruptDisable = (1 << 2),
-      DecimalMode = (1 << 3),
-      BreakCommand = (1 << 4),
-      Unused = (1 << 5),
-      Overflow = (1 << 6),
-      Negative = (1 << 7)
-    };
+  enum class Status{
+    Carry = 1,
+    Zero = (1 << 1),
+    InterruptDisable = (1 << 2),
+    DecimalMode = (1 << 3),
+    BreakCommand = (1 << 4),
+    Unused = (1 << 5),
+    Overflow = (1 << 6),
+    Negative = (1 << 7)
   };
 
   enum class AddressMode{
@@ -54,7 +53,7 @@ struct Cpu{
   u8 accumulator = 0;
   u8 x = 0;
   u8 y = 0;
-  u8 status = 0;
+  Register<u8, Status> status;
   u8 sp = 0xFD;
   u16 pc = 0;
 
@@ -73,8 +72,6 @@ struct Cpu{
 
   Cpu();
   auto set_address_mode(Nes& nes, Cpu::AddressMode mode) -> bool;
-  auto set_status(u8 flag, u8 state) -> void;
-  auto get_status(u8 flag) -> u8;
   
   //Read from address inside 'absolute_address' prop
   auto fetch(Nes& nes) -> u8;

@@ -92,7 +92,7 @@ auto Ppu::mem_write(Nes& nes, u16 address, u8 value) -> void{
 }
 
 static auto ppu_increment_address(Ppu& ppu){
-  const auto increment_mode = ppu.control & Ppu::Control::IncrementMode;
+  const auto increment_mode = ppu.control.get(Ppu::Control::IncrementMode);
   ppu.vram_address.data += increment_mode ? 32 : 1;
 }
 
@@ -101,8 +101,8 @@ auto Ppu::cpu_read(const Nes& nes, u16 address) -> u8{
 
   switch(address){
     case CpuStatusPort:{
-      const auto status = (this->status & 0xE0) | (data_buffer & 0x1F);
-      this->status &= ~Ppu::Status::VBlank;
+      const auto status = (this->status.value & 0xE0) | (data_buffer & 0x1F);
+      this->status.clear(Ppu::Status::VBlank);
       address_latch = Ppu::AddressLatch::MSB;
       return status;
     }
@@ -130,13 +130,13 @@ auto Ppu::cpu_write(Nes& nes, u16 address, u8 value) -> void{
   address &= 0x0007;
   switch(address){
     case CpuControlPort:
-      control = value;
-      tram_address.props.nametable_x = (control & Control::NametableX) > 0;
-      tram_address.props.nametable_y = (control & Control::NametableY) > 0;
+      control.value = value;
+      tram_address.props.nametable_x = control.get(Control::NametableX);
+      tram_address.props.nametable_y = control.get(Control::NametableY);
       break;
 
     case CpuMaskPort:
-      mask = value;
+      mask.value = value;
       break;
 
     case CpuOAMAddressPort:
@@ -182,7 +182,7 @@ auto Ppu::cpu_write(Nes& nes, u16 address, u8 value) -> void{
 }
 
 static auto ppu_increment_scroll_x(Ppu& ppu){
-  if (ppu.mask & Ppu::Mask::RenderBackground || ppu.mask & Ppu::Mask::RenderSprites){
+  if (ppu.mask.get(Ppu::Mask::RenderBackground) || ppu.mask.get(Ppu::Mask::RenderSprites)){
     auto& vram = ppu.vram_address.props;
     if (vram.scroll_x == 31){
       vram.scroll_x = 0;
@@ -195,7 +195,7 @@ static auto ppu_increment_scroll_x(Ppu& ppu){
 }
 
 static auto ppu_increment_scroll_y(Ppu& ppu){
-  if ((ppu.mask & Ppu::Mask::RenderBackground) || (ppu.mask & Ppu::Mask::RenderSprites)){
+  if (ppu.mask.get(Ppu::Mask::RenderBackground) || ppu.mask.get(Ppu::Mask::RenderSprites)){
     auto& vram = ppu.vram_address.props;
     if (vram.cell_scroll_y < 7){
       vram.cell_scroll_y++;
@@ -218,7 +218,7 @@ static auto ppu_increment_scroll_y(Ppu& ppu){
 }
 
 static auto ppu_transfer_address_x(Ppu& ppu){
-  if (ppu.mask & Ppu::Mask::RenderBackground || ppu.mask & Ppu::Mask::RenderSprites){
+  if (ppu.mask.get(Ppu::Mask::RenderBackground) || ppu.mask.get(Ppu::Mask::RenderSprites)){
     auto& vram = ppu.vram_address.props;
     auto& tram = ppu.tram_address.props;
 
@@ -228,7 +228,7 @@ static auto ppu_transfer_address_x(Ppu& ppu){
 }
 
 static auto ppu_transfer_address_y(Ppu& ppu){
-  if (ppu.mask & Ppu::Mask::RenderBackground || ppu.mask & Ppu::Mask::RenderSprites){
+  if (ppu.mask.get(Ppu::Mask::RenderBackground) || ppu.mask.get(Ppu::Mask::RenderSprites)){
     auto& vram = ppu.vram_address.props;
     auto& tram = ppu.tram_address.props;
 
@@ -247,14 +247,14 @@ static auto ppu_load_shifters(Ppu& ppu){
 }
 
 static auto ppu_update_shifters(Ppu& ppu){
-  if (ppu.mask & Ppu::Mask::RenderBackground){
+  if (ppu.mask.get(Ppu::Mask::RenderBackground)){
     ppu.bg_shifter_pattern_low <<= 1;
     ppu.bg_shifter_pattern_high <<= 1;
     ppu.bg_shifter_attribute_low <<= 1;
     ppu.bg_shifter_attribute_high <<= 1;
   }
 
-  if ((ppu.mask & Ppu::Mask::RenderSprites) && in_range(ppu.cycles, std::make_pair(1, Ppu::ScreenSize.x + 1))){
+  if (ppu.mask.get(Ppu::Mask::RenderSprites) && in_range(ppu.cycles, std::make_pair(1, Ppu::ScreenSize.x + 1))){
     for (auto i : range(ppu.scanline_sprites_count)){
       if (ppu.sprites_on_scanline[i].x > 0){
         ppu.sprites_on_scanline[i].x--;
@@ -272,9 +272,9 @@ auto Ppu::clock(const Nes& nes) -> void{
 
   if (in_range(scanline, std::make_pair(-1, ScreenSize.y - 1))){
     if (scanline == -1 && cycles == 1){
-      status &= ~Status::VBlank;
-      status &= ~Status::SpriteOverflow;
-      status &= ~Status::Sprite0Hit;
+      status.clear(Status::VBlank);
+      status.clear(Status::SpriteOverflow);
+      status.clear(Status::Sprite0Hit);
 
       for (auto i : range(MaxSpritesOnScanline)){
         sprite_shifter_pattern_low[i] = 0;
@@ -288,7 +288,7 @@ auto Ppu::clock(const Nes& nes) -> void{
     ){
       ppu_update_shifters(*this);
 
-      const auto background_pattern = (control & Control::BackgroundPattern) > 0;
+      const auto background_pattern = control.get(Control::BackgroundPattern);
       switch((cycles - 1) % 8){
         case 0:
           ppu_load_shifters(*this);
@@ -360,7 +360,7 @@ auto Ppu::clock(const Nes& nes) -> void{
       for (int i = 0; i < 64 && scanline_sprites_count < 9; ++i){
         const auto y_diff = (scanline - i16(oam[i].y));
 
-        const auto sprite_height = (control & Control::SpriteSize) > 0 ? 16 : 8;
+        const auto sprite_height = control.get(Control::SpriteSize) ? 16 : 8;
         if (in_range(y_diff, std::make_pair(0, sprite_height - 1))){
           if (scanline_sprites_count < 8){
             if (i == 0){
@@ -376,11 +376,11 @@ auto Ppu::clock(const Nes& nes) -> void{
       }
 
       if (scanline_sprites_count > 8){
-        status |= Status::SpriteOverflow;
+        status.set(Status::SpriteOverflow);
         scanline_sprites_count = 8;
       }
       else{
-        status &= ~Status::SpriteOverflow;
+        status.clear(Status::SpriteOverflow);
       }
 
     }
@@ -388,13 +388,13 @@ auto Ppu::clock(const Nes& nes) -> void{
     if (cycles == 340){
       u16 sprite_pattern_address_low = 0;
 
-      const auto sprite_size_8x8 = (control & Control::SpriteSize) == 0;
+      const auto sprite_size_8x8 = control.get(Control::SpriteSize) == 0;
 
       for (auto i : range(scanline_sprites_count)){
         const auto flipped_vertically = (sprites_on_scanline[i].attribute & 0x80) > 0;
 
         if (sprite_size_8x8){
-          const auto pattern_table = ((control & Control::SpritePattern) > 0) << 12;
+          const auto pattern_table = control.get(Control::SpritePattern) << 12;
           const auto pattern_cell = sprites_on_scanline[i].id << 4;
           const auto row_in_cell = scanline - sprites_on_scanline[i].y;
           //Check if not flipped:
@@ -445,9 +445,9 @@ auto Ppu::clock(const Nes& nes) -> void{
 
   if (in_range(scanline, std::make_pair(ScreenSize.y + 1, MaxScanlines - 1))){
     if (scanline == ScreenSize.y + 1 && cycles == 1){
-      status |= Ppu::Status::VBlank;
+      status.set(Ppu::Status::VBlank);
 
-      if (control & Control::EnableNmi){
+      if (control.get(Control::EnableNmi)){
         nmi = true;
       }
     }
@@ -455,7 +455,7 @@ auto Ppu::clock(const Nes& nes) -> void{
 
   u8 bg_palette = 0;
   u8 bg_pixel = 0;
-  if (mask & Mask::RenderBackground){
+  if (mask.get(Mask::RenderBackground)){
     assert(cell_scroll_x < 8);
     u16 bit_mux = 0x8000 >> cell_scroll_x;
 
@@ -472,8 +472,8 @@ auto Ppu::clock(const Nes& nes) -> void{
   u8 fg_palette = 0;
   u8 fg_priority = 0;
 
-  if (mask & Mask::RenderSprites){
-    if ((mask & Mask::RenderSpritesLeft) || cycles >= 9){
+  if (mask.get(Mask::RenderSprites)){
+    if (mask.get(Mask::RenderSpritesLeft) || cycles >= 9){
       sprite0_being_rendered = false;
 
       for (auto i : range(scanline_sprites_count)){
@@ -523,16 +523,16 @@ auto Ppu::clock(const Nes& nes) -> void{
     if(
       sprite0hit_possible &&
       sprite0_being_rendered &&
-      (mask & Mask::RenderBackground) && 
-      (mask & Mask::RenderSprites)
+      mask.get(Mask::RenderBackground) && 
+      mask.get(Mask::RenderSprites)
     ){
       auto min_pixel = 1;
-      if (!(mask & Mask::RenderSpritesLeft) && !(mask & Mask::RenderBackgroundLeft)){
+      if (!mask.get(Mask::RenderSpritesLeft) && !mask.get(Mask::RenderBackgroundLeft)){
         min_pixel = 9;
       }
 
       if (in_range(cycles, std::make_pair(min_pixel, ScreenSize.x + 1))){
-        status |= Status::Sprite0Hit;
+        status.set(Status::Sprite0Hit);
       }
     }
   }

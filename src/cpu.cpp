@@ -9,22 +9,22 @@ static auto nop(Cpu& cpu, Nes& nes) -> void{}
 static auto lda(Cpu& cpu, Nes& nes) -> void{
   cpu.accumulator = cpu.fetch(nes);
 
-  cpu.set_status(Cpu::Status::Zero, cpu.accumulator == 0);
-  cpu.set_status(Cpu::Status::Negative, cpu.accumulator >> 7);
+  cpu.status.set(Cpu::Status::Zero, cpu.accumulator == 0);
+  cpu.status.set(Cpu::Status::Negative, cpu.accumulator >> 7);
 }
 
 static auto ldx(Cpu& cpu, Nes& nes) -> void{
   cpu.x = cpu.fetch(nes);
 
-  cpu.set_status(Cpu::Status::Zero, cpu.x == 0);
-  cpu.set_status(Cpu::Status::Negative, cpu.x >> 7);
+  cpu.status.set(Cpu::Status::Zero, cpu.x == 0);
+  cpu.status.set(Cpu::Status::Negative, cpu.x >> 7);
 }
 
 static auto ldy(Cpu& cpu, Nes& nes) -> void{
   cpu.y = cpu.fetch(nes);
 
-  cpu.set_status(Cpu::Status::Zero, cpu.y == 0);
-  cpu.set_status(Cpu::Status::Negative, cpu.y >> 7);
+  cpu.status.set(Cpu::Status::Zero, cpu.y == 0);
+  cpu.status.set(Cpu::Status::Negative, cpu.y >> 7);
 }
 
 static auto sta(Cpu& cpu, Nes& nes) -> void{
@@ -41,26 +41,26 @@ static auto sty(Cpu& cpu, Nes& nes) -> void{
 
 static auto tax(Cpu& cpu, Nes& nes) -> void{
   cpu.x = cpu.accumulator ;
-  cpu.set_status(Cpu::Status::Zero, cpu.x == 0);
-  cpu.set_status(Cpu::Status::Negative, cpu.x >> 7);
+  cpu.status.set(Cpu::Status::Zero, cpu.x == 0);
+  cpu.status.set(Cpu::Status::Negative, cpu.x >> 7);
 }
 
 static auto tay(Cpu& cpu, Nes& nes) -> void{
   cpu.y = cpu.accumulator ;
-  cpu.set_status(Cpu::Status::Zero, cpu.y == 0);
-  cpu.set_status(Cpu::Status::Negative, cpu.y >> 7);
+  cpu.status.set(Cpu::Status::Zero, cpu.y == 0);
+  cpu.status.set(Cpu::Status::Negative, cpu.y >> 7);
 }
 
 static auto tsx(Cpu& cpu, Nes& nes) -> void{
   cpu.x = cpu.sp;
-  cpu.set_status(Cpu::Status::Zero, cpu.x == 0);
-  cpu.set_status(Cpu::Status::Negative, cpu.x >> 7);
+  cpu.status.set(Cpu::Status::Zero, cpu.x == 0);
+  cpu.status.set(Cpu::Status::Negative, cpu.x >> 7);
 }
 
 static auto txa(Cpu& cpu, Nes& nes) -> void{
   cpu.accumulator = cpu.x;
-  cpu.set_status(Cpu::Status::Zero, cpu.accumulator   == 0);
-  cpu.set_status(Cpu::Status::Negative, cpu.accumulator  >> 7);
+  cpu.status.set(Cpu::Status::Zero, cpu.accumulator   == 0);
+  cpu.status.set(Cpu::Status::Negative, cpu.accumulator  >> 7);
 }
 
 static auto txs(Cpu& cpu, Nes& nes) -> void{
@@ -69,8 +69,8 @@ static auto txs(Cpu& cpu, Nes& nes) -> void{
 
 static auto tya(Cpu& cpu, Nes& nes) -> void{
   cpu.accumulator = cpu.y;
-  cpu.set_status(Cpu::Status::Zero, cpu.accumulator   == 0);
-  cpu.set_status(Cpu::Status::Negative, cpu.accumulator  >> 7);
+  cpu.status.set(Cpu::Status::Zero, cpu.accumulator   == 0);
+  cpu.status.set(Cpu::Status::Negative, cpu.accumulator  >> 7);
 }
 
 static auto pha(Cpu& cpu, Nes& nes) -> void{
@@ -78,105 +78,105 @@ static auto pha(Cpu& cpu, Nes& nes) -> void{
 }
 
 static auto php(Cpu& cpu, Nes& nes) -> void{
-  cpu.stack_push(nes, cpu.status | Cpu::Status::Unused | Cpu::Status::BreakCommand);
+  cpu.stack_push(nes, cpu.status.plus(Cpu::Status::Unused).plus(Cpu::Status::BreakCommand).value);
 }
 
 static auto pla(Cpu& cpu, Nes& nes) -> void{
   cpu.sp++;
   cpu.accumulator  = nes.mem_read(Cpu::StackEnd + cpu.sp);
-  cpu.set_status(Cpu::Status::Zero, cpu.accumulator   == 0);
-  cpu.set_status(Cpu::Status::Negative, cpu.accumulator  >> 7);
+  cpu.status.set(Cpu::Status::Zero, cpu.accumulator   == 0);
+  cpu.status.set(Cpu::Status::Negative, cpu.accumulator  >> 7);
 }
 
 static auto plp(Cpu& cpu, Nes& nes) -> void{
   cpu.sp++;
-  cpu.status = nes.mem_read(Cpu::StackEnd + cpu.sp);
-  cpu.set_status(Cpu::Status::BreakCommand, 0);
+  cpu.status.value = nes.mem_read(Cpu::StackEnd + cpu.sp);
+  cpu.status.set(Cpu::Status::BreakCommand, 0);
 }
 
 static auto and_(Cpu& cpu, Nes& nes) -> void{
   const u8 value = cpu.fetch(nes);
   cpu.accumulator  &= value;
 
-  cpu.set_status(Cpu::Status::Zero, cpu.accumulator   == 0);
-  cpu.set_status(Cpu::Status::Negative, cpu.accumulator  >> 7);
+  cpu.status.set(Cpu::Status::Zero, cpu.accumulator   == 0);
+  cpu.status.set(Cpu::Status::Negative, cpu.accumulator  >> 7);
 }
 
 static auto eor(Cpu& cpu, Nes& nes) -> void{
   const u8 value = cpu.fetch(nes);
   cpu.accumulator  ^= value;
 
-  cpu.set_status(Cpu::Status::Zero, cpu.accumulator   == 0);
-  cpu.set_status(Cpu::Status::Negative, cpu.accumulator  >> 7);
+  cpu.status.set(Cpu::Status::Zero, cpu.accumulator   == 0);
+  cpu.status.set(Cpu::Status::Negative, cpu.accumulator  >> 7);
 }
 
 static auto ora(Cpu& cpu, Nes& nes) -> void{
   const u8 value = cpu.fetch(nes);
   cpu.accumulator  |= value;
 
-  cpu.set_status(Cpu::Status::Zero, cpu.accumulator   == 0);
-  cpu.set_status(Cpu::Status::Negative, cpu.accumulator  >> 7);
+  cpu.status.set(Cpu::Status::Zero, cpu.accumulator   == 0);
+  cpu.status.set(Cpu::Status::Negative, cpu.accumulator  >> 7);
 }
 
 static auto bit(Cpu& cpu, Nes& nes) -> void{
   const u8 value = cpu.fetch(nes);
   const u8 result = cpu.accumulator & value;
 
-  cpu.set_status(Cpu::Status::Zero, result == 0);
-  cpu.set_status(Cpu::Status::Overflow, value & (1 << 6));
-  cpu.set_status(Cpu::Status::Negative, value & (1 << 7));
+  cpu.status.set(Cpu::Status::Zero, result == 0);
+  cpu.status.set(Cpu::Status::Overflow, value & (1 << 6));
+  cpu.status.set(Cpu::Status::Negative, value & (1 << 7));
 }
 
 static auto adc(Cpu& cpu, Nes& nes) -> void{
   const u8 value = cpu.fetch(nes);
-  const u8 carry = cpu.get_status(Cpu::Status::Carry);
+  const u8 carry = cpu.status.get(Cpu::Status::Carry);
 
   const uint16_t result = cpu.accumulator  + value + carry;
-  cpu.set_status(Cpu::Status::Carry, result > 255);
-  cpu.set_status(Cpu::Status::Zero, (result & 0x00FF) == 0);
+  cpu.status.set(Cpu::Status::Carry, result > 255);
+  cpu.status.set(Cpu::Status::Zero, (result & 0x00FF) == 0);
 
   const u8 sign_bit_incorrect = ((value ^ result) & (cpu.accumulator  ^ result)) & (1 << 7);
-  cpu.set_status(Cpu::Status::Overflow, sign_bit_incorrect);
-  cpu.set_status(Cpu::Status::Negative, result & (1 << 7));
+  cpu.status.set(Cpu::Status::Overflow, sign_bit_incorrect);
+  cpu.status.set(Cpu::Status::Negative, result & (1 << 7));
   cpu.accumulator  = result;
 }
 
 static auto sbc(Cpu& cpu, Nes& nes) -> void{
   const u8 value = cpu.fetch(nes);
-  const u8 carry = cpu.get_status(Cpu::Status::Carry);
+  const u8 carry = cpu.status.get(Cpu::Status::Carry);
 
   const uint16_t result = cpu.accumulator  + u8(~value) + carry;
-  cpu.set_status(Cpu::Status::Carry, result > 255);
-  cpu.set_status(Cpu::Status::Zero, (result & 0x00FF) == 0);
+  cpu.status.set(Cpu::Status::Carry, result > 255);
+  cpu.status.set(Cpu::Status::Zero, (result & 0x00FF) == 0);
 
   const u8 sign_bit_incorrect = ((u8(~value) ^ result) & (cpu.accumulator  ^ result)) & (1 << 7);
-  cpu.set_status(Cpu::Status::Overflow, sign_bit_incorrect);
-  cpu.set_status(Cpu::Status::Negative, result & (1 << 7));
+  cpu.status.set(Cpu::Status::Overflow, sign_bit_incorrect);
+  cpu.status.set(Cpu::Status::Negative, result & (1 << 7));
   cpu.accumulator  = result;
 }
 
 static auto cmp(Cpu& cpu, Nes& nes) -> void{
   const u8 value = cpu.fetch(nes);
-  cpu.set_status(Cpu::Status::Carry, value <= cpu.accumulator );
-  cpu.set_status(Cpu::Status::Zero, value == cpu.accumulator );
+  cpu.status.set(Cpu::Status::Carry, value <= cpu.accumulator );
+  cpu.status.set(Cpu::Status::Zero, value == cpu.accumulator );
   const uint16_t result = cpu.accumulator  - value;
-  cpu.set_status(Cpu::Status::Negative, result & (1 << 7));
+  cpu.status.set(Cpu::Status::Negative, result & (1 << 7));
 }
 
 static auto cpx(Cpu& cpu, Nes& nes) -> void{
   const u8 value = cpu.fetch(nes);
-  cpu.set_status(Cpu::Status::Carry, value <= cpu.x);
-  cpu.set_status(Cpu::Status::Zero, value == cpu.x);
+  cpu.status.set(Cpu::Status::Carry, value <= cpu.x);
+  cpu.status.set(Cpu::Status::Zero, value == cpu.x);
   const uint16_t result = cpu.x - value;
-  cpu.set_status(Cpu::Status::Negative, result & (1 << 7));
+  cpu.status.set(Cpu::Status::Negative, result & (1 << 7));
 }
 
 static auto cpy(Cpu& cpu, Nes& nes) -> void{
   const u8 value = cpu.fetch(nes);
-  cpu.set_status(Cpu::Status::Carry, value <= cpu.y);
-  cpu.set_status(Cpu::Status::Zero, value == cpu.y);
+  cpu.status.set(Cpu::Status::Carry, value <= cpu.y);
+  cpu.status.set(Cpu::Status::Zero, value == cpu.y);
   const uint16_t result = cpu.y - value;
-  cpu.set_status(Cpu::Status::Negative, result & (1 << 7));
+  cpu.status.set(Cpu::Status::Negative, result & (1 << 7));
 }
 
 static auto inc(Cpu& cpu, Nes& nes) -> void{
@@ -184,22 +184,22 @@ static auto inc(Cpu& cpu, Nes& nes) -> void{
   const u8 result = value + 1;
 
   nes.mem_write(cpu.absolute_address, result);
-  cpu.set_status(Cpu::Status::Zero, result == 0);
-  cpu.set_status(Cpu::Status::Negative, result & (1 << 7));
+  cpu.status.set(Cpu::Status::Zero, result == 0);
+  cpu.status.set(Cpu::Status::Negative, result & (1 << 7));
 }
 
 static auto inx(Cpu& cpu, Nes& nes) -> void{
   cpu.x++;
 
-  cpu.set_status(Cpu::Status::Zero, cpu.x == 0);
-  cpu.set_status(Cpu::Status::Negative, cpu.x & (1 << 7));
+  cpu.status.set(Cpu::Status::Zero, cpu.x == 0);
+  cpu.status.set(Cpu::Status::Negative, cpu.x & (1 << 7));
 }
 
 static auto iny(Cpu& cpu, Nes& nes) -> void{
   cpu.y++;
 
-  cpu.set_status(Cpu::Status::Zero, cpu.y == 0);
-  cpu.set_status(Cpu::Status::Negative, cpu.y & (1 << 7));
+  cpu.status.set(Cpu::Status::Zero, cpu.y == 0);
+  cpu.status.set(Cpu::Status::Negative, cpu.y & (1 << 7));
 }
 
 static auto dec(Cpu& cpu, Nes& nes) -> void{
@@ -207,31 +207,31 @@ static auto dec(Cpu& cpu, Nes& nes) -> void{
   const u8 result = value - 1;
 
   nes.mem_write(cpu.absolute_address, result);
-  cpu.set_status(Cpu::Status::Zero, result == 0);
-  cpu.set_status(Cpu::Status::Negative, result & (1 << 7));
+  cpu.status.set(Cpu::Status::Zero, result == 0);
+  cpu.status.set(Cpu::Status::Negative, result & (1 << 7));
 }
 
 static auto dex(Cpu& cpu, Nes& nes) -> void{
   cpu.x--;
 
-  cpu.set_status(Cpu::Status::Zero, cpu.x == 0);
-  cpu.set_status(Cpu::Status::Negative, cpu.x & (1 << 7));
+  cpu.status.set(Cpu::Status::Zero, cpu.x == 0);
+  cpu.status.set(Cpu::Status::Negative, cpu.x & (1 << 7));
 }
 
 static auto dey(Cpu& cpu, Nes& nes) -> void{
   cpu.y--;
 
-  cpu.set_status(Cpu::Status::Zero, cpu.y == 0);
-  cpu.set_status(Cpu::Status::Negative, cpu.y & (1 << 7));
+  cpu.status.set(Cpu::Status::Zero, cpu.y == 0);
+  cpu.status.set(Cpu::Status::Negative, cpu.y & (1 << 7));
 }
 
 static auto asl(Cpu& cpu, Nes& nes) -> void{
   u8 result = cpu.accumulator_addressing ? cpu.accumulator : cpu.fetch(nes);
 
-  cpu.set_status(Cpu::Status::Carry, result >> 7);
+  cpu.status.set(Cpu::Status::Carry, result >> 7);
   result <<= 1;
-  cpu.set_status(Cpu::Status::Zero, result == 0);
-  cpu.set_status(Cpu::Status::Negative, result & (1 << 7));
+  cpu.status.set(Cpu::Status::Zero, result == 0);
+  cpu.status.set(Cpu::Status::Negative, result & (1 << 7));
 
   if (cpu.accumulator_addressing){
     cpu.accumulator  = result;
@@ -244,10 +244,10 @@ static auto asl(Cpu& cpu, Nes& nes) -> void{
 static auto lsr(Cpu& cpu, Nes& nes) -> void{
   u8 result = cpu.accumulator_addressing ? cpu.accumulator  : cpu.fetch(nes);
 
-  cpu.set_status(Cpu::Status::Carry, result & 1);
+  cpu.status.set(Cpu::Status::Carry, result & 1);
   result >>= 1;
-  cpu.set_status(Cpu::Status::Zero, result == 0);
-  cpu.set_status(Cpu::Status::Negative, result & (1 << 7));
+  cpu.status.set(Cpu::Status::Zero, result == 0);
+  cpu.status.set(Cpu::Status::Negative, result & (1 << 7));
 
   if (cpu.accumulator_addressing){
     cpu.accumulator  = result;
@@ -262,10 +262,10 @@ static auto rol(Cpu& cpu, Nes& nes) -> void{
 
   const u8 msb = result >> 7;
   result <<= 1;
-  result |= cpu.get_status(Cpu::Status::Carry);
-  cpu.set_status(Cpu::Status::Carry, msb);
-  cpu.set_status(Cpu::Status::Zero, result == 0);
-  cpu.set_status(Cpu::Status::Negative, result & (1 << 7));
+  result |= cpu.status.get(Cpu::Status::Carry);
+  cpu.status.set(Cpu::Status::Carry, msb);
+  cpu.status.set(Cpu::Status::Zero, result == 0);
+  cpu.status.set(Cpu::Status::Negative, result & (1 << 7));
 
   if (cpu.accumulator_addressing){
     cpu.accumulator  = result;
@@ -280,10 +280,10 @@ static auto ror(Cpu& cpu, Nes& nes) -> void{
 
   const u8 lsb = result & 1;
   result >>= 1;
-  result |= cpu.get_status(Cpu::Status::Carry) << 7;
-  cpu.set_status(Cpu::Status::Carry, lsb);
-  cpu.set_status(Cpu::Status::Zero, result == 0);
-  cpu.set_status(Cpu::Status::Negative, result & (1 << 7));
+  result |= cpu.status.get(Cpu::Status::Carry) << 7;
+  cpu.status.set(Cpu::Status::Carry, lsb);
+  cpu.status.set(Cpu::Status::Zero, result == 0);
+  cpu.status.set(Cpu::Status::Negative, result & (1 << 7));
 
   if (cpu.accumulator_addressing){
     cpu.accumulator  = result;
@@ -323,94 +323,94 @@ static auto cpu_branch(Cpu& cpu){
 }
 
 static auto bcc(Cpu& cpu, Nes& nes) -> void{
-  if (cpu.get_status(Cpu::Status::Carry) == 0){
+  if (cpu.status.get(Cpu::Status::Carry) == 0){
     cpu_branch(cpu);
   }
 }
 
 static auto bcs(Cpu& cpu, Nes& nes) -> void{
-  if (cpu.get_status(Cpu::Status::Carry)){
+  if (cpu.status.get(Cpu::Status::Carry)){
     cpu_branch(cpu);
   }
 }
 
 static auto beq(Cpu& cpu, Nes& nes) -> void{
-  if (cpu.get_status(Cpu::Status::Zero) == 1){
+  if (cpu.status.get(Cpu::Status::Zero) == 1){
     cpu_branch(cpu);
   }
 }
 
 static auto bne(Cpu& cpu, Nes& nes) -> void{
-  if (cpu.get_status(Cpu::Status::Zero) == 0){
+  if (cpu.status.get(Cpu::Status::Zero) == 0){
     cpu_branch(cpu);
   }
 }
 
 static auto bpl(Cpu& cpu, Nes& nes) -> void{
-  if (cpu.get_status(Cpu::Status::Negative) == 0){
+  if (cpu.status.get(Cpu::Status::Negative) == 0){
     cpu_branch(cpu);
   }
 }
 
 static auto bmi(Cpu& cpu, Nes& nes) -> void{
-  if (cpu.get_status(Cpu::Status::Negative)){
+  if (cpu.status.get(Cpu::Status::Negative)){
     cpu_branch(cpu);
   }
 }
 
 static auto bvc(Cpu& cpu, Nes& nes) -> void{
-  if (cpu.get_status(Cpu::Status::Overflow) == 0){
+  if (cpu.status.get(Cpu::Status::Overflow) == 0){
     cpu_branch(cpu);
   }
 }
 
 static auto bvs(Cpu& cpu, Nes& nes) -> void{
-  if (cpu.get_status(Cpu::Status::Overflow)){
+  if (cpu.status.get(Cpu::Status::Overflow)){
     cpu_branch(cpu);
   }
 }
 
 static auto clc(Cpu& cpu, Nes& nes) -> void{
-  cpu.set_status(Cpu::Status::Carry, 0);
+  cpu.status.set(Cpu::Status::Carry, 0);
 }
 
 static auto cld(Cpu& cpu, Nes& nes) -> void{
-  cpu.set_status(Cpu::Status::DecimalMode, 0);
+  cpu.status.set(Cpu::Status::DecimalMode, 0);
 }
 
 static auto cli(Cpu& cpu, Nes& nes) -> void{
-  cpu.set_status(Cpu::Status::InterruptDisable, 0);
+  cpu.status.set(Cpu::Status::InterruptDisable, 0);
 }
 
 static auto clv(Cpu& cpu, Nes& nes) -> void{
-  cpu.set_status(Cpu::Status::Overflow, 0);
+  cpu.status.set(Cpu::Status::Overflow, 0);
 }
 
 static auto sec(Cpu& cpu, Nes& nes) -> void{
-  cpu.set_status(Cpu::Status::Carry, 1);
+  cpu.status.set(Cpu::Status::Carry, 1);
 }
 
 static auto sed(Cpu& cpu, Nes& nes) -> void{
-  cpu.set_status(Cpu::Status::DecimalMode, 1);
+  cpu.status.set(Cpu::Status::DecimalMode, 1);
 }
 
 static auto sei(Cpu& cpu, Nes& nes) -> void{
-  cpu.set_status(Cpu::Status::InterruptDisable, 1);
+  cpu.status.set(Cpu::Status::InterruptDisable, 1);
 }
 
 static auto brk(Cpu& cpu, Nes& nes) -> void{
-  cpu.set_status(Cpu::Status::BreakCommand, 1);
+  cpu.status.set(Cpu::Status::BreakCommand, 1);
   cpu.stack_push(nes, cpu.pc << 8);
   cpu.stack_push(nes, cpu.pc);
-  cpu.stack_push(nes, cpu.status);
+  cpu.stack_push(nes, cpu.status.value);
 
   cpu.pc = nes.mem_read(0xFFFE) | u16(nes.mem_read(0xFFFF) << 8);
 }
 
 static auto rti(Cpu& cpu, Nes& nes) -> void{
-  cpu.status = cpu.stack_pull(nes);
+  cpu.status.value = cpu.stack_pull(nes);
 
-  cpu.set_status(Cpu::Status::BreakCommand, 0);
+  cpu.status.set(Cpu::Status::BreakCommand, 0);
 
   cpu.pc = cpu.stack_pull_u16(nes);
 }
@@ -972,19 +972,6 @@ auto Cpu::set_address_mode(Nes& nes, Cpu::AddressMode mode) -> bool{
   return 0;
 }
 
-auto Cpu::set_status(u8 flag, u8 state) -> void{
-  if (state){
-    status |= flag;
-  }
-  else{
-    status &= (~flag);
-  }
-}
-
-auto Cpu::get_status(u8 flag) -> u8{
-  return (status & flag) > 0;
-}
-
 auto Cpu::fetch(Nes& nes) -> u8{
   return nes.mem_read(absolute_address);
 }
@@ -1044,7 +1031,7 @@ auto Cpu::clock(Nes& nes) -> void{
     const auto requires_additional_cycle = execute_instruction(nes, cmd);
     if (requires_additional_cycle) req_cycles++;
 
-    set_status(Cpu::Status::Unused, 1);
+    status.set(Cpu::Status::Unused, 1);
   }
 
   req_cycles--;
@@ -1053,11 +1040,11 @@ auto Cpu::clock(Nes& nes) -> void{
 static auto cpu_interrupt(Cpu& cpu, Nes& nes, u16 absolute_address){
   cpu.stack_push_u16(nes, cpu.pc);
 
-  cpu.set_status(Cpu::Status::BreakCommand, 0);
-  cpu.set_status(Cpu::Status::Unused, 1);
-  cpu.set_status(Cpu::Status::InterruptDisable, 1);
+  cpu.status.set(Cpu::Status::BreakCommand, 0);
+  cpu.status.set(Cpu::Status::Unused, 1);
+  cpu.status.set(Cpu::Status::InterruptDisable, 1);
 
-  cpu.stack_push(nes, cpu.status);
+  cpu.stack_push(nes, cpu.status.value);
 
   cpu.absolute_address = absolute_address;
   cpu.pc = nes.mem_read_u16(absolute_address);
@@ -1066,7 +1053,7 @@ static auto cpu_interrupt(Cpu& cpu, Nes& nes, u16 absolute_address){
 }
 
 auto Cpu::irq(Nes& nes) -> void{
-  if (get_status(Cpu::Status::InterruptDisable) == 0){
+  if (status.get(Cpu::Status::InterruptDisable) == 0){
     cpu_interrupt(*this, nes, 0xFFFE);
   }
 }

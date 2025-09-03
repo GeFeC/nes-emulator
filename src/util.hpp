@@ -5,6 +5,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <iostream>
 
 namespace nes{
 
@@ -101,6 +102,36 @@ struct Ring{
         break;
       }
     }
+  }
+};
+
+template<typename T, typename Enum>
+struct Register{
+  T value = 0;
+
+  auto set(Enum prop, bool value){
+    this->value |= value * static_cast<T>(prop);
+    this->value &= (1 - value) * (~static_cast<T>(prop)) + (value) * T(-1);
+  }
+
+  auto set(Enum prop){
+    this->value |= static_cast<T>(prop);
+  }
+
+  auto clear(Enum prop){
+    this->value &= (~static_cast<T>(prop));
+  }
+
+  auto get(Enum prop){
+    return (value & static_cast<T>(prop)) > 0;
+  }
+
+  auto plus(Enum prop){
+    auto reg = Register{};
+    reg.value = value;
+    reg.value |= static_cast<T>(prop);
+    
+    return reg;
   }
 };
 

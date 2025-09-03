@@ -255,7 +255,7 @@ struct Debugger{
     texture.print(registers_pos + vec2(40.f, 0), "Y:" + hex_str(nes.cpu.y));
     texture.print(registers_pos + vec2(80.f, 0), "A:" + hex_str(nes.cpu.accumulator));
     texture.print(registers_pos + vec2(120.f, 0), "SP:" + hex_str(nes.cpu.sp));
-    texture.print(registers_pos + vec2(168.f, 0), "STATUS:" + hex_str(nes.cpu.status));
+    texture.print(registers_pos + vec2(168.f, 0), "STATUS:" + hex_str(nes.cpu.status.value));
 
 
   }
@@ -279,9 +279,9 @@ struct Debugger{
     auto registers_pos = vec2(80.f, pattern_tables_pos.y + 128.f);
     auto step = 8.f;
     texture.print(registers_pos + vec2(0.f, step * 0), "PPU");
-    texture.print(registers_pos + vec2(0.f, step * 1), "STATUS:" + hex_str(nes.ppu.status));
-    texture.print(registers_pos + vec2(0.f, step * 2), "MASK:" + hex_str(nes.ppu.mask));
-    texture.print(registers_pos + vec2(0.f, step * 3), "CONTROL:" + hex_str(nes.ppu.control));
+    texture.print(registers_pos + vec2(0.f, step * 1), "STATUS:" + hex_str(nes.ppu.status.value));
+    texture.print(registers_pos + vec2(0.f, step * 2), "MASK:" + hex_str(nes.ppu.mask.value));
+    texture.print(registers_pos + vec2(0.f, step * 3), "CONTROL:" + hex_str(nes.ppu.control.value));
     texture.print(registers_pos + vec2(0.f, step * 4), "SPRITE0:" + hex_str(nes.ppu.oam[0].id));
 
     texture.print(registers_pos + vec2(0.f, step * 6), "NAMETABLE Y: " + hex_str(nes.ppu.tram_address.props.nametable_y));

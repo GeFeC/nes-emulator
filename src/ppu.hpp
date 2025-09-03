@@ -49,38 +49,32 @@ struct Ppu{
   u8 palettes[PalettesCount * PaletteSize];
   std::array<Texture::pixel_color, 64> colors;
 
-  struct Status{
-    enum{
-      SpriteOverflow = (1 << 5),
-      Sprite0Hit = (1 << 6),
-      VBlank = (1 << 7)
-    };
+  enum class Status{
+    SpriteOverflow = (1 << 5),
+    Sprite0Hit = (1 << 6),
+    VBlank = (1 << 7)
   };
 
-  struct Mask{
-    enum{
-      Greyscale = 1,
-      RenderBackgroundLeft = (1 << 1),
-      RenderSpritesLeft = (1 << 2),
-      RenderBackground = (1 << 3),
-      RenderSprites = (1 << 4),
-      Red = (1 << 5),
-      Green = (1 << 6),
-      Blue = (1 << 7)
-    };
+  enum class Mask{
+    Greyscale = 1,
+    RenderBackgroundLeft = (1 << 1),
+    RenderSpritesLeft = (1 << 2),
+    RenderBackground = (1 << 3),
+    RenderSprites = (1 << 4),
+    Red = (1 << 5),
+    Green = (1 << 6),
+    Blue = (1 << 7)
   };
 
-  struct Control{
-    enum{
-      NametableX = 1,
-      NametableY = (1 << 1),
-      IncrementMode = (1 << 2),
-      SpritePattern = (1 << 3),
-      BackgroundPattern = (1 << 4),
-      SpriteSize = (1 << 5),
-      SlaveMode = (1 << 6),
-      EnableNmi = (1 << 7)
-    };
+  enum class Control{
+    NametableX = 1,
+    NametableY = (1 << 1),
+    IncrementMode = (1 << 2),
+    SpritePattern = (1 << 3),
+    BackgroundPattern = (1 << 4),
+    SpriteSize = (1 << 5),
+    SlaveMode = (1 << 6),
+    EnableNmi = (1 << 7)
   };
 
   enum class AddressLatch{
@@ -118,9 +112,9 @@ struct Ppu{
   u8 sprite_shifter_pattern_high[MaxSpritesOnScanline];
 
   //Registers:
-  u8 control = 0;
-  u8 mask = 0;
-  u8 status = 0;
+  Register<u8, Control> control;
+  Register<u8, Mask> mask;
+  Register<u8, Status> status;
 
   AddressLatch address_latch = AddressLatch::MSB;
   u8 data_buffer = 0;

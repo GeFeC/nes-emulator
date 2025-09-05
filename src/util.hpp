@@ -6,6 +6,8 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <mutex>
+#include <condition_variable>
 
 namespace nes{
 
@@ -136,6 +138,22 @@ struct Register{
     reg.value |= static_cast<T>(prop);
     
     return reg;
+  }
+};
+
+struct Request{
+  mutable std::mutex mtx;
+  mutable std::condition_variable cv;
+
+  auto send() const{
+    auto lock = std::lock_guard(mtx);
+    cv.notify_one();
+  }
+
+  template<typename Callable>
+  auto wait(Callable callable) const{
+    auto lock = std::unique_lock(mtx);
+    cv.wait(lock, callable);
   }
 };
 

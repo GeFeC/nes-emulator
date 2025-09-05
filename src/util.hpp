@@ -126,11 +126,11 @@ struct Register{
     this->value &= (~static_cast<T>(prop));
   }
 
-  auto get(Enum prop){
+  auto get(Enum prop) const{
     return (value & static_cast<T>(prop)) > 0;
   }
 
-  auto plus(Enum prop){
+  auto plus(Enum prop) const{
     auto reg = Register{};
     reg.value = value;
     reg.value |= static_cast<T>(prop);

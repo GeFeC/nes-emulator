@@ -10,6 +10,7 @@ namespace nes{
 Ppu::Ppu(bool visual_mode) 
   : screen_texture(ScreenSize, visual_mode), buffer_texture(ScreenSize, visual_mode){
   colors = get_colors();
+  screen_texture.scale = vec2(2.f);
 }
 
 auto Ppu::mem_read(const Nes& nes, u16 address) const -> u8{

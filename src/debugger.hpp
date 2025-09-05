@@ -6,7 +6,7 @@
 namespace nes{
 
 struct Debugger{
-  static constexpr auto Size = Ppu::ScreenSize;
+  static constexpr auto Size = vec2(Ppu::ScreenSize.x, Ppu::ScreenSize.y * 2.f);
 
   Texture texture;
   std::string opcode_names[256] = {

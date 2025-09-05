@@ -7,8 +7,8 @@
 #include <cassert>
 
 static constexpr auto Viewport = gf::math::vec2(
-  nes::Ppu::ScreenSize.x * 2.f,
-  nes::Ppu::ScreenSize.y
+  nes::Ppu::ScreenSize.x * 3.f,
+  nes::Ppu::ScreenSize.y * 2.f
 );
 
 auto main(int argc, char** argv) -> int{
@@ -92,7 +92,7 @@ auto main(int argc, char** argv) -> int{
 
     debugger.render(nes);
     renderer.render_texture(nes.ppu.screen_texture, nes::vec2(0.f));
-    renderer.render_texture(debugger.texture, nes::vec2(nes::Ppu::ScreenSize.x, 0.f));
+    renderer.render_texture(debugger.texture, nes::vec2(nes::Ppu::ScreenSize.x * 2.f, 0.f));
 
     window.swap_interval(1);
     window.update_buffer();

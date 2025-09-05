@@ -340,6 +340,7 @@ struct Texture{
   std::vector<pixel_color> pixels;
   pixel_color text_color = pixel_color(255, 255, 255);
   vec2 size;
+  vec2 scale = vec2(1.f, 1.f);
   GLuint id;
 
   Texture(const vec2& size, bool visual_mode = true){

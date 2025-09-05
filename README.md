@@ -40,3 +40,8 @@ make -j4
 ```
 ./nes-emulator rom_name_without_extension
 ```
+
+# Known Issues
+ - Mapper004's IRQ is not working 100% correctly. In Super Mario Bros. 3 for example:
+    - In the slot machine minigame scrolling is not working properly (Although emulator doesn't crash)
+    - In some parts of levels the stats window at the bottom of the screen is glitched

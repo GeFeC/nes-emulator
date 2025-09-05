@@ -49,7 +49,10 @@ struct Nes{
 
   u16 nmi_pc = 0x0;
 
-  Nes(bool visual_mode = true) : ppu(visual_mode) {}
+  Nes(bool visual_mode = true) : ppu(visual_mode) {
+    cpu.status.set(Cpu::Status::InterruptDisable);
+    cpu.status.set(Cpu::Status::Unused);
+  }
 
   auto in_apu_range(u16 address) const{
     return in_range(address, std::make_pair(0x4000, 0x4013)) || address == 0x4015 || address == 0x4017;
@@ -174,6 +177,11 @@ struct Nes{
     if (audio_time >= 1.0 / AudioSampleRate){
       audio_time -= 1.0 / AudioSampleRate;
       audio_sample_ready = true;
+    }
+
+    if (cardridge.mapper->irq_state()){
+      cardridge.mapper->irq_clear();
+      cpu.irq(*this);
     }
 
     cycles++;

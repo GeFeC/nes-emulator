@@ -21,6 +21,7 @@ Nintendo Entertainment System emulator implementation in C++
     - [x] Mapper001
     - [x] Mapper002
     - [x] Mapper003
+    - [x] Mapper004
     - [x] Mapper066
 
 # Generating project

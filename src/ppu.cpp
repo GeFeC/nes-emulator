@@ -102,6 +102,7 @@ auto Ppu::cpu_read(const Nes& nes, u16 address) -> u8{
   switch(address){
     case CpuStatusPort:{
       const auto status = (this->status.value & 0xE0) | (data_buffer & 0x1F);
+
       this->status.clear(Ppu::Status::VBlank);
       address_latch = Ppu::AddressLatch::MSB;
       return status;
@@ -456,6 +457,7 @@ auto Ppu::clock(const Nes& nes) -> void{
   u8 bg_palette = 0;
   u8 bg_pixel = 0;
   if (mask.get(Mask::RenderBackground)){
+    if (mask.get(Mask::RenderBackgroundLeft) || cycles >= 9){
     assert(cell_scroll_x < 8);
     u16 bit_mux = 0x8000 >> cell_scroll_x;
 
@@ -466,6 +468,7 @@ auto Ppu::clock(const Nes& nes) -> void{
     u8 palette0 = (bg_shifter_attribute_low & bit_mux) > 0;
     u8 palette1 = (bg_shifter_attribute_high & bit_mux) > 0;
     bg_palette = (palette1 << 1) | palette0;
+    }
   }
 
   u8 fg_pixel = 0;
@@ -537,6 +540,7 @@ auto Ppu::clock(const Nes& nes) -> void{
     }
   }
 
+
   buffer_texture.set_pixel(
     vec2(cycles - 1, scanline), 
     colors[mem_read(nes, PalettesAddressRange.first + (palette << 2) + pixel) & 0x3F]
@@ -555,6 +559,11 @@ auto Ppu::clock(const Nes& nes) -> void{
     }
   }
 
+  if (mask.get(Mask::RenderBackground) || mask.get(Mask::RenderSprites)){
+    if (scanline < 240 && cycles == 324){
+      nes.cardridge.mapper->update_irq_counter(vram_address.data);
+    }
+  }
 }
 
 } //namespace nes

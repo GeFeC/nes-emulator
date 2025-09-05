@@ -199,7 +199,7 @@ struct Debugger{
 
     auto str = name + "              ";
     str.insert(5, op_arg);
-    texture.print(position, hex_str(u8(nes.cardridge.mapper->current_program_bank())) + ":" + hex_str(u16(address)) + ":" + str);
+    texture.print(position, hex_str(u16(address)) + ":" + str);
 
     texture.print(position + vec2(152.f, 0.f), op_str);
 

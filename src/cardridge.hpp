@@ -95,6 +95,8 @@ struct Cardridge{
         mapper = std::make_unique<Mapper002>(header.program_rom_chunks, header.char_rom_chunks); break;
       case 3:
         mapper = std::make_unique<Mapper003>(header.program_rom_chunks, header.char_rom_chunks); break;
+      case 4:
+        mapper = std::make_unique<Mapper004>(game_name, header.program_rom_chunks); break;
       case 66:
         mapper = std::make_unique<Mapper066>(header.program_rom_chunks, header.char_rom_chunks); break;
       default:

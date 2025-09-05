@@ -65,6 +65,10 @@ inline auto hex_str(u16 value){
   return str;
 }
 
+inline auto is_even(int value){
+  return !(value & 1);
+}
+
 template<typename T>
 struct Ring{
   std::vector<T> vec;

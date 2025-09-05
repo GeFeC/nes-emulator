@@ -1,8 +1,10 @@
 #pragma once
 
 #include "aliases.hpp"
-#include "renderer/renderer.hpp"
+#include "renderer/texture.hpp"
 #include <array>
+#include <condition_variable>
+#include <mutex>
 
 namespace nes{
 
@@ -39,8 +41,11 @@ struct Ppu{
 
   static constexpr auto MaxSpritesOnScanline = 8;
 
-  Texture screen_texture;
-  Texture buffer_texture;
+  Texture texture1;
+  Texture texture2;
+
+  Texture* finished_texture = &texture1;
+  Texture* draw_texture = &texture2;
 
   u8 current_palette = 0;
   bool sprite0hit_occured = false;

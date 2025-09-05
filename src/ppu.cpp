@@ -1,4 +1,5 @@
 #include "ppu.hpp"
+#include "GLFW/glfw3.h"
 #include "nes.hpp"
 #include "colors.hpp"
 #include "util.hpp"
@@ -8,9 +9,11 @@
 namespace nes{
 
 Ppu::Ppu(bool visual_mode) 
-  : screen_texture(ScreenSize, visual_mode), buffer_texture(ScreenSize, visual_mode){
+  : texture1(ScreenSize, visual_mode), texture2(ScreenSize, visual_mode){
   colors = get_colors();
-  screen_texture.scale = vec2(2.f);
+
+  texture1.scale = vec2(2.f);
+  texture2.scale = vec2(2.f);
 }
 
 auto Ppu::mem_read(const Nes& nes, u16 address) const -> u8{
@@ -270,8 +273,6 @@ static auto ppu_update_shifters(Ppu& ppu){
 }
 
 auto Ppu::clock(const Nes& nes) -> void{
-  frame_complete = false;
-
   if (in_range(scanline, std::make_pair(-1, ScreenSize.y - 1))){
     if (scanline == -1 && cycles == 1){
       status.clear(Status::VBlank);
@@ -542,7 +543,7 @@ auto Ppu::clock(const Nes& nes) -> void{
   }
 
 
-  buffer_texture.set_pixel(
+  draw_texture->set_pixel(
     vec2(cycles - 1, scanline), 
     colors[mem_read(nes, PalettesAddressRange.first + (palette << 2) + pixel) & 0x3F]
   );
@@ -556,7 +557,9 @@ auto Ppu::clock(const Nes& nes) -> void{
     if (scanline > Ppu::MaxScanlines){
       scanline = -1;
       frame_complete = true;
-      screen_texture.pixels = buffer_texture.pixels;
+      std::swap(draw_texture, finished_texture);
+
+      nes.render_request.send();
     }
   }
 

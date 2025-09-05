@@ -91,11 +91,15 @@ auto main(int argc, char** argv) -> int{
     window.clear_buffer();
 
     debugger.render(nes);
-    renderer.render_texture(nes.ppu.screen_texture, nes::vec2(0.f));
     renderer.render_texture(debugger.texture, nes::vec2(nes::Ppu::ScreenSize.x * 2.f, 0.f));
+    nes.render_request.wait([&]{ return nes.ppu.frame_complete; });
 
-    window.swap_interval(1);
+    renderer.render_texture(*nes.ppu.finished_texture, nes::vec2(0.f));
+
+    window.swap_interval(0);
     window.update_buffer();
+
+    nes.ppu.frame_complete = false;
 
     delta_time = glfwGetTime() - start_frame_time;
   }

@@ -333,6 +333,15 @@ struct Texture{
     1,1,1,1,1,1,1,1,
     1,1,1,1,1,1,1,1,
     0,1,1,0,0,1,1,0,
+
+    0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,
+    0,1,1,1,1,1,1,0,
+    0,0,0,0,0,0,0,0,
   };
 
   using pixel_color = vec<u8, 3>;
@@ -403,6 +412,9 @@ struct Texture{
       }
       else if (c == '#'){
         sprite_index = 39;
+      }
+      else if (c == '_'){
+        sprite_index = 40;
       }
       else throw std::runtime_error("Unknown character: " + std::string(1, c));
 

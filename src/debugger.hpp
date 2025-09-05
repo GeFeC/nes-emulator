@@ -53,7 +53,7 @@ struct Debugger{
 
   Ring<u16> pc_history;
 
-  Debugger() : texture(vec2(Size)), pc_history(11) {}
+  Debugger() : texture(vec2(Size)), pc_history(24) {}
 
   auto render_pattern_table(Nes& nes, int index, const vec2& position){
     for (auto [x, y] : range({ 16, 16 })){
@@ -210,22 +210,40 @@ struct Debugger{
     return size;
   }
 
+  auto render_flag(const vec2& pos, const std::string& name, bool value){
+    texture.text_color = Texture::pixel_color((1 - value) * 255, value * 255, 0);
+    texture.print(pos, name);
+  }
+
   auto render_cpu_page(Nes& nes){
-    //Render code:
-    const auto code_pos = vec2(0.f, 96.f);
-    auto code_height = 88.f;
-    auto instruction_y = 0.f;
+    //Render registers:
+    const auto registers_pos = vec2(0.f, 0.f);
+
+    texture.print(registers_pos + vec2(0.f, 0), "X:" + hex_str(nes.cpu.x));
+    texture.print(registers_pos + vec2(40.f, 0), "Y:" + hex_str(nes.cpu.y));
+    texture.print(registers_pos + vec2(80.f, 0), "A:" + hex_str(nes.cpu.accumulator));
+    texture.print(registers_pos + vec2(120.f, 0), "SP:" + hex_str(nes.cpu.sp));
+    texture.print(registers_pos + vec2(168.f, 0), "STATUS:" + hex_str(nes.cpu.status.value));
+
+    const auto status = nes.cpu.status;
+    render_flag(registers_pos + vec2(0.f, 16.f), "CARRY", status.get(Cpu::Status::Carry));
+    render_flag(registers_pos + vec2(48.f, 16.f), "ZERO", status.get(Cpu::Status::Zero));
+    render_flag(registers_pos + vec2(48.f + 40.f, 16.f), "INTERRUPT_DISABLE", status.get(Cpu::Status::Zero));
+    render_flag(registers_pos + vec2(0.f, 28.f), "BREAK_CMD", status.get(Cpu::Status::BreakCommand));
+    render_flag(registers_pos + vec2(80.f, 28.f), "OVERFLOW", status.get(Cpu::Status::Overflow));
+    render_flag(registers_pos + vec2(160.f, 28.f), "NEGATIVE", status.get(Cpu::Status::Negative));
 
     auto i = 0;
-    texture.text_color = Texture::pixel_color(255, 255, 0);
     const auto current_pc = nes.cpu.pc;
 
     //Render pc history:
-    const auto pc_history_pos = vec2(0.f, 0.f);
+    const auto pc_history_pos = vec2(0.f, 44.f);
+    texture.text_color = Texture::pixel_color(255, 255, 255);
+    texture.print(pc_history_pos - vec2(0.f, 4.f), "EXECUTED INSTRUCTIONS:");
     texture.text_color = Texture::pixel_color(0, 255, 255);
 
     pc_history.for_each([&](u16 pc, u32 index){
-      render_instruction(nes, pc_history_pos + vec2(0.f, (pc_history.size - i - 1) * 8.f), pc);
+      render_instruction(nes, pc_history_pos + vec2(0.f, (pc_history.size - i) * 8.f), pc);
       i++;
       if (i == pc_history.size) return false;
 
@@ -234,30 +252,23 @@ struct Debugger{
     i = 0;
 
     //Render code:
+    const auto code_pos = pc_history_pos + vec2(0.f, (pc_history.size + 2) * 8.f);
+    texture.text_color = Texture::pixel_color(255, 255, 255);
+    texture.print(code_pos - vec2(0.f, 4.f), "CODE FRAGMENT:");
+
     texture.text_color = Texture::pixel_color(255, 255, 0);
-    while(instruction_y < code_height){
+
+    for (auto y : range(pc_history.size)){
       const auto op_size = render_instruction(
         nes, 
-        code_pos + vec2(0.f, instruction_y), 
+        code_pos + vec2(0.f, (y + 1) * 8.f), 
         current_pc + i
       );
       
-      instruction_y += 8.f;
       i += op_size;
 
       texture.text_color = Texture::pixel_color(255, 255, 255);
     }
-
-    const auto registers_pos = vec2(0.f, code_pos.y + code_height + 8.f);
-
-    //Render registers:
-    texture.print(registers_pos + vec2(0.f, 0), "X:" + hex_str(nes.cpu.x));
-    texture.print(registers_pos + vec2(40.f, 0), "Y:" + hex_str(nes.cpu.y));
-    texture.print(registers_pos + vec2(80.f, 0), "A:" + hex_str(nes.cpu.accumulator));
-    texture.print(registers_pos + vec2(120.f, 0), "SP:" + hex_str(nes.cpu.sp));
-    texture.print(registers_pos + vec2(168.f, 0), "STATUS:" + hex_str(nes.cpu.status.value));
-
-
   }
 
   auto render_ppu_page(Nes& nes){
@@ -298,7 +309,7 @@ struct Debugger{
       render_ppu_page(nes);
     }
 
-    texture.print(vec2(0.f, 240.f - 8.f), "CYCLES:" + std::to_string(nes.cycles));
+    texture.print(vec2(0.f, 240.f * 2.f - 8.f), "CYCLES:" + std::to_string(nes.cycles));
   }
 
   auto loop(const Window& window, Nes& nes){

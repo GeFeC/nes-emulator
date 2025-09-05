@@ -54,8 +54,6 @@ inline auto test_cpu(){
   }
 
   nes.cpu.pc = 0xC000;
-  nes.cpu.status.set(Cpu::Status::Unused, 1);
-  nes.cpu.status.set(Cpu::Status::InterruptDisable, 1);
 
   auto cmds = 0;
   while(cmds < log_data.size()){
